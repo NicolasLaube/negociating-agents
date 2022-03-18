@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+import logging
+from communication.message.Message import Message
+from communication.message.MessagePerformative import MessagePerformative
 from mesa import Agent
 
 from communication.mailbox.Mailbox import Mailbox
@@ -19,49 +22,45 @@ class CommunicatingAgent(Agent):
         message_service: The message service used to send and receive message (MessageService)
     """
 
-    def __init__(self, unique_id, model, name):
-        """ Create a new communicating agent.
-        """
+    def __init__(self, unique_id, model, name: str, verbose: bool = False):
+        """Create a new communicating agent."""
         super().__init__(unique_id, model)
         self.__name = name
         self.__mailbox = Mailbox()
         self.__messages_service = MessageService.get_instance()
 
     def step(self):
-        """ The step methods of the agent called by the scheduler at each time tick.
-        """
+        """The step methods of the agent called by the scheduler at each time tick."""
         super().step()
 
     def get_name(self):
-        """ Return the name of the communicating agent."""
+        """Return the name of the communicating agent."""
         return self.__name
 
-    def receive_message(self, message):
-        """ Receive a message (called by the MessageService object) and store it in the mailbox.
-        """
+    def receive_message(self, message: Message):
+        """Receive a message (called by the MessageService object) and store it in the mailbox."""
         self.__mailbox.receive_messages(message)
 
     def send_message(self, message):
-        """ Send message through the MessageService object.
-        """
+        """Send message through the MessageService object."""
+        performative = message.get_performative()
+
+        print(f"Agent{self.unique_id} - {performative}({message})")
+
         self.__messages_service.send_message(message)
 
     def get_new_messages(self):
-        """ Return all the unread messages.
-        """
+        """Return all the unread messages."""
         return self.__mailbox.get_new_messages()
 
     def get_messages(self):
-        """ Return all the received messages.
-        """
+        """Return all the received messages."""
         return self.__mailbox.get_messages()
 
     def get_messages_from_performative(self, performative):
-        """ Return a list of messages which have the same performative.
-        """
+        """Return a list of messages which have the same performative."""
         return self.__mailbox.get_messages_from_performative(performative)
 
     def get_messages_from_exp(self, exp):
-        """ Return a list of messages which have the same sender.
-        """
+        """Return a list of messages which have the same sender."""
         return self.__mailbox.get_messages_from_exp(exp)
