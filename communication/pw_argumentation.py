@@ -1,21 +1,29 @@
+import csv
 from enum import Enum
 from functools import reduce
 import random
-import numpy as np
-from typing import List
+from typing import List, Union, Tuple
+from communication.arguments import Argument
+from communication.arguments.Comparison import Comparison
+from communication.arguments.CoupleValue import CoupleValue
 from communication.message.Message import Message
 
 from communication.message.MessagePerformative import MessagePerformative
 from communication import Item
-from communication.preferences import CriterionName, Value
 
 from mesa import Model
 from mesa.time import RandomActivation
 
 from communication.agent.CommunicatingAgent import CommunicatingAgent
 from communication.message.MessageService import MessageService
-from communication.preferences.CriterionValue import CriterionValue
-from communication.preferences.Preferences import Preferences
+from communication.preferences import (
+    Preferences,
+    Item,
+    CriterionValue,
+    CriterionName,
+    Value,
+)
+from communication.arguments.Argument import Argument
 
 
 class NegotationState(Enum):
@@ -130,7 +138,7 @@ class ArgumentAgent(CommunicatingAgent):
                             self.get_name(),
                             new_message.get_exp(),
                             MessagePerformative.ARGUE,
-                            None,
+                            self.support_proposal(self.proposed_item),
                         )
                     )
 
@@ -161,9 +169,35 @@ class ArgumentAgent(CommunicatingAgent):
         """Get preference"""
         return self.preferences
 
-    def generate_preferences(self, items: List[Item], criteria: List[CriterionName]):
+    def load_preferences(self, path: str):
+        """Load preferences from csv"""
+        with open(path, "r", encoding="utf-8") as file:
+            reader = csv.reader(file)
+            categories = next(reader)
+            preferences = Preferences()
+            preferences.set_criterion_name_list(
+                [CriterionName(x) for x in categories[1:]]
+            )
+            # print("criterion name list ", preferences.criterion_name_list)
+            items = []
+            for row in reader:
+                new_item = Item(row[0], f"This is a {row[0]}")
+                items.append(new_item)
+                for i, criterion_name in enumerate(categories[1:]):
+                    criterion_value = CriterionValue(
+                        new_item, CriterionName(criterion_name), Value(int(row[i + 1]))
+                    )
+                    preferences.add_criterion_value(criterion_value)
+
+            self.preferences = preferences
+            self.items = sorted(
+                items, key=lambda item: item.get_score(self.preferences), reverse=True
+            )
+
+    def generate_random_preferences(
+        self, items: List[Item], criteria: List[CriterionName]
+    ):
         """Generate preferences"""
-        # TODO verify code create better preferences
         preferences = Preferences()
         random.shuffle(criteria)
         preferences.set_criterion_name_list(criteria)
@@ -176,6 +210,49 @@ class ArgumentAgent(CommunicatingAgent):
         self.items = sorted(
             items, key=lambda item: item.get_score(self.preferences), reverse=True
         )
+
+    def support_proposal(self, item: Item) -> str:
+        """
+        Used when the agent receives "ASK_WHY" after having proposed an item :param item: str - name of the item which was proposed
+        :return: string - the strongest supportive argument
+        """
+        all_cv = Argument.list_supporting_proposal(item, self.preferences)
+        arg = Argument(True, item)
+        arg.add_premiss_couple_values(all_cv[0])
+        return str(arg)
+
+    def argument_parsing(
+        self, argument: Argument
+    ) -> Tuple[Union[Comparison, CoupleValue], Item, bool]:
+        """Parse an argument"""
+        proposals = argument.list_supporting_proposal()
+
+        return (
+            _,
+            argument.item,
+        )
+
+    def attack_argument(
+        self,
+        premises_comparison: List[Comparison],
+        premises_couple_value: List[CoupleValue],
+        item: Item,
+        is_chosen: bool,
+    ):
+        counter_arg = None
+        for premise in premises_couple_value:
+            if (
+                premise.value.value
+                < self.preferences.get_value(item, premise.criterion_name).value
+            ):
+                if counter_arg == None:
+                    counter_arg = Argument(not is_chosen, item)
+                counter_arg.add_premiss_couple_values(
+                    CoupleValue(
+                        premise.criterion_name,
+                        self.preferences.get_value(item, premise.criterion_name),
+                    )
+                )
 
 
 class ArgumentModel(Model):
@@ -191,7 +268,8 @@ class ArgumentModel(Model):
 
         for i in range(1, number_agents + 1):
             agent = ArgumentAgent(i, self, f"Agent{i}", self.items)
-            agent.generate_preferences(self.items, self.criteria)
+            agent.load_preferences(f"data/preferences/p{i}.csv")
+            # agent.generate_random_preferences(self.items, self.criteria)
             self.schedule.add(agent)
 
         self.running = True

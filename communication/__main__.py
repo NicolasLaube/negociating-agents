@@ -25,5 +25,5 @@ argument_model = ArgumentModel(2, items=ITEMS, criteria=CRITERIA)
 NUM_STEPS = 20
 
 
-for i in range(NUM_STEPS):
+for _ in range(NUM_STEPS):
     argument_model.step()

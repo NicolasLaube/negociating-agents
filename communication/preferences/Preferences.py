@@ -21,6 +21,10 @@ class Preferences:
         self.__criterion_name_list = []
         self.__criterion_value_list = []
 
+    # @property
+    # def criterion_name_list(self):
+    #     return self.__criterion_name_list
+
     def get_criterion_name_list(self):
         """Returns the list of criterion name."""
         return self.__criterion_name_list
