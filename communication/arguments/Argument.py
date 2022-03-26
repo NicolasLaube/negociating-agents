@@ -32,9 +32,9 @@ class Argument:
     def item(self):
         """ITem"""
 
-    def add_premiss_comparison(self, criterion_name_1, criterion_name_2):
+    def add_premiss_comparison(self, comparison):
         """Adds a premiss comparison in the comparison list."""
-        self.__comparison_list.append(Comparison(criterion_name_1, criterion_name_2))
+        self.__comparison_list.append(comparison)
 
     def add_premiss_couple_values(self, couple_value):
         """Add a premiss couple values in the couple values list."""
@@ -46,6 +46,22 @@ class Argument:
             + ", ".join(map(str, self.__couple_values_list))
             + ", ".join(map(str, self.__comparison_list))
         )
+    
+    def get_item(self):
+        """To get the item"""
+        return self.__item
+    
+    def get_decision(self):
+        """To get the decision"""
+        return self.__decision
+
+    def get_premises_comparison(self):
+        """To get the premises comparions"""
+        return self.__comparison_list
+
+    def get_premises_couple_values(self):
+        """To get the premises couple values"""
+        return self.__couple_values_list
 
     @staticmethod
     def list_supporting_proposal(item: Item, preferences: Preferences):
