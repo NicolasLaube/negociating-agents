@@ -1,3 +1,4 @@
+from ast import arg
 import csv
 from enum import Enum
 from functools import reduce
@@ -78,6 +79,7 @@ class ArgumentAgent(CommunicatingAgent):
 
             # First case: the received item is in the 10% preferred ones
             if new_message.get_performative() == MessagePerformative.PROPOSE:
+                self.convinced_agents = None
                 if self.negotation_state != NegotationState.FINISHED:
                     if (
                         new_message.get_content()
@@ -102,13 +104,15 @@ class ArgumentAgent(CommunicatingAgent):
                                 new_message.get_content(),
                             )
                         )
+                        self.proposed_item = new_message.get_content()
                         self.negotation_state = NegotationState.ARGUING
 
             # Second case: the other agent sends an accept message
             if new_message.get_performative() == MessagePerformative.ACCEPT:
                 if (
                     self.negotation_state == NegotationState.ARGUING
-                    and self.proposed_item == new_message.get_content()
+                    and self.proposed_item.get_name()
+                    == new_message.get_content().get_name()
                 ):
                     self.convinced_agents[new_message.get_exp()] = True
                     if reduce(lambda x, y: x and y, self.convinced_agents.values()):
@@ -130,7 +134,8 @@ class ArgumentAgent(CommunicatingAgent):
             if new_message.get_performative() == MessagePerformative.ASK_WHY:
                 if (
                     self.negotation_state == NegotationState.ARGUING
-                    and self.proposed_item == new_message.get_content()
+                    and self.proposed_item.get_name()
+                    == new_message.get_content().get_name()
                 ):
                     self.send_message(
                         Message(
@@ -145,7 +150,8 @@ class ArgumentAgent(CommunicatingAgent):
             if new_message.get_performative() == MessagePerformative.ARGUE:
                 if (
                     self.negotation_state == NegotationState.ARGUING
-                    and self.proposed_item == new_message.get_content().get_item()
+                    and self.proposed_item.get_name()
+                    == new_message.get_content().get_item().get_name()
                 ):
                     argument = self.attack_argument(
                         *self.argument_parsing(new_message.get_content())
@@ -160,20 +166,40 @@ class ArgumentAgent(CommunicatingAgent):
                             )
                         )
                         self.negotation_state = NegotationState.WAITING_ANSWER_ACCEPT
-                    self.send_message(
-                        Message(
-                            self.get_name(),
-                            new_message.get_exp(),
-                            MessagePerformative.ARGUE,
-                            self.support_proposal(self.proposed_item),
-                        )
-                    )
+                    else:
+                        if (
+                            argument.get_item().get_name()
+                            == self.proposed_item.get_name()
+                        ):
+                            self.send_message(
+                                Message(
+                                    self.get_name(),
+                                    new_message.get_exp(),
+                                    MessagePerformative.ARGUE,
+                                    argument,
+                                )
+                            )
+                        else:
+                            self.proposed_item = argument.get_item()
+                            self.convinced_agents = {}
+                            for agent in self.model.schedule.agents:
+                                if agent.get_name() != self.get_name():
+                                    self.send_message(
+                                        Message(
+                                            self.get_name(),
+                                            agent.get_name(),
+                                            MessagePerformative.PROPOSE,
+                                            argument.get_item(),
+                                        )
+                                    )
+                                    self.convinced_agents[agent.get_name()] = False
 
             # Fifth case: the other agent sends a commit message
             if new_message.get_performative() == MessagePerformative.COMMIT:
                 if (
                     self.proposed_item == new_message.get_content()
-                    and self.proposed_item in self.items
+                    and self.proposed_item.get_name()
+                    in [item.get_name() for item in self.items]
                 ):
                     if self.negotation_state == NegotationState.WAITING_ANSWER_ACCEPT:
                         self.send_message(
@@ -184,7 +210,11 @@ class ArgumentAgent(CommunicatingAgent):
                                 self.proposed_item,
                             )
                         )
-                        self.items.pop(self.items.index(self.proposed_item))
+                        self.items.pop(
+                            [item.get_name() for item in self.items].index(
+                                self.proposed_item.get_name()
+                            )
+                        )
                         self.negotation_state = NegotationState.FINISHED
                     elif self.negotation_state == NegotationState.WAITING_FOR_COMMIT:
                         self.convinced_agents[new_message.get_exp()] = True
@@ -283,6 +313,7 @@ class ArgumentAgent(CommunicatingAgent):
                 )
             # I've found a criterion of better importance that invalidates the goal
             else:
+                best_criterion, best_value = None, -1
                 for criterion in self.preferences.get_criterion_name_list():
                     if criterion == premise.criterion_name:
                         break
@@ -293,7 +324,7 @@ class ArgumentAgent(CommunicatingAgent):
                             Value.AVERAGE.value,
                             max(
                                 [
-                                    self.preferences.get_value(it, criterion)
+                                    self.preferences.get_value(it, criterion).value
                                     for it in self.items
                                 ]
                             ),
@@ -305,7 +336,7 @@ class ArgumentAgent(CommunicatingAgent):
                             Value.GOOD.value,
                             min(
                                 [
-                                    self.preferences.get_value(it, criterion)
+                                    self.preferences.get_value(it, criterion).value
                                     for it in self.items
                                 ]
                             ),
@@ -322,8 +353,19 @@ class ArgumentAgent(CommunicatingAgent):
                             Comparison(criterion, premise.criterion_name)
                         )
                         break
+                    if self.preferences.get_value(item, criterion).value > best_value:
+                        best_criterion = criterion
+                        best_value = self.preferences.get_value(item, criterion).value
         if counter_arg is not None:
             return counter_arg
+        elif not is_chosen:
+            argument = Argument(True, item)
+            argument.add_premiss_couple_values(
+                CoupleValue(
+                    best_criterion, self.preferences.get_value(item, best_criterion)
+                )
+            )
+            return argument
         # I've found a better object on the criterion you're talking
         criterion_name = (
             premises_couple_value[0].criterion_name

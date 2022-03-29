@@ -19,7 +19,7 @@ class Argument:
     def __init__(self, boolean_decision, item):
         """Creates a new Argument."""
         self.__decision = boolean_decision
-        self.__item = item.get_name()
+        self.__item = item
         self.__comparison_list = []
         self.__couple_values_list = []
 
@@ -42,15 +42,21 @@ class Argument:
 
     def __str__(self) -> str:
         return (
-            f"{'¬' if not self.__decision else ''}{self.__item} ← "
+            f"{'¬' if not self.__decision else ''}{self.__item.get_name()} ← "
             + ", ".join(map(str, self.__couple_values_list))
+            + (
+                ", "
+                if len(self.__couple_values_list) > 0
+                and len(self.__comparison_list) > 0
+                else ""
+            )
             + ", ".join(map(str, self.__comparison_list))
         )
-    
+
     def get_item(self):
         """To get the item"""
         return self.__item
-    
+
     def get_decision(self):
         """To get the decision"""
         return self.__decision
