@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-
+from typing import List
 from random import random
 from communication.preferences.CriterionName import CriterionName
 from communication.preferences.CriterionValue import CriterionValue
-from communication.preferences.Item import Item
+from communication.preferences.item import Item
 from communication.preferences.Value import Value
 
 
@@ -63,7 +63,7 @@ class Preferences:
         """Returns if the item 1 is preferred to the item 2."""
         return item_1.get_score(self) > item_2.get_score(self)
 
-    def most_preferred(self, item_list):
+    def most_preferred(self, item_list: List[Item]) -> Item:
         """Returns the most preferred item from a list."""
         sorted_item_list = sorted(
             item_list,
@@ -76,19 +76,21 @@ class Preferences:
             return random.choice([sorted_item_list[0], sorted_item_list[1]])
         return sorted_item_list[0]
 
-    def is_item_among_top_10_percent(self, item) -> bool:
+    def is_item_among_top_10_percent(self, item: Item, item_list: List[Item]) -> bool:
         """
         Return whether a given item is among the top 10 percent of the preferred items.
 
         :return: a boolean, True means that the item is among the favourite ones
         """
-        # To be completed
-
-        return True
+        sorted_item_list = sorted(
+            item_list,
+            key=lambda item: item.get_score(self),
+            reverse=True,
+        )
+        return item in sorted_item_list[: int(len(sorted_item_list) * 0.1)]
 
 
 if __name__ == "__main__":
-    """Testing the Preferences class."""
     agent_pref = Preferences()
     agent_pref.set_criterion_name_list(
         [
@@ -163,6 +165,7 @@ if __name__ == "__main__":
     print(
         "Diesel Engine (for agent 1) = {}".format(diesel_engine.get_score(agent_pref))
     )
+
     print(
         "Most preferred item is : {}".format(
             agent_pref.most_preferred([diesel_engine, electric_engine]).get_name()

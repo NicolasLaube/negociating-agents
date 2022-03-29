@@ -30,7 +30,8 @@ class Argument:
 
     @property
     def item(self):
-        """ITem"""
+        """Item"""
+        return self.item
 
     def add_premiss_comparison(self, comparison):
         """Adds a premiss comparison in the comparison list."""

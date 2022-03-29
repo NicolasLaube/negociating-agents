@@ -50,29 +50,34 @@ class ArgumentAgent(CommunicatingAgent):
         self.proposed_item = None
         self.convinced_agents = None
 
+    def start_conversation(self):
+        """Start conversation"""
+        min_id = self.unique_id
+        for agent in self.model.schedule.agents:
+            min_id = min(min_id, agent.unique_id)
+        if min_id == self.unique_id:
+            self.convinced_agents = {}
+            for agent in self.model.schedule.agents:
+                if agent.get_name() != self.get_name():
+                    self.send_message(
+                        Message(
+                            self.get_name(),
+                            agent.get_name(),
+                            MessagePerformative.PROPOSE,
+                            self.items[0],
+                        )
+                    )
+                    self.convinced_agents[agent.get_name()] = False
+            self.negotation_state = NegotationState.ARGUING
+            self.proposed_item = self.items[0]
+
     def step(self):
         """Step function"""
 
         # First step: we must begin the conversation
         if self.negotation_state == NegotationState.REST:
-            min_id = self.unique_id
-            for agent in self.model.schedule.agents:
-                min_id = min(min_id, agent.unique_id)
-            if min_id == self.unique_id:
-                self.convinced_agents = {}
-                for agent in self.model.schedule.agents:
-                    if agent.get_name() != self.get_name():
-                        self.send_message(
-                            Message(
-                                self.get_name(),
-                                agent.get_name(),
-                                MessagePerformative.PROPOSE,
-                                self.items[0],
-                            )
-                        )
-                        self.convinced_agents[agent.get_name()] = False
-                self.negotation_state = NegotationState.ARGUING
-                self.proposed_item = self.items[0]
+            self.start_conversation()
+            
 
         new_messages = self.get_new_messages()
         for new_message in new_messages:

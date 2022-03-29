@@ -2,10 +2,9 @@
 
 import logging
 from communication.message.Message import Message
-from communication.message.MessagePerformative import MessagePerformative
 from mesa import Agent
 
-from communication.mailbox.Mailbox import Mailbox
+from communication.mailbox.mailbox import Mailbox
 from communication.message.MessageService import MessageService
 
 
