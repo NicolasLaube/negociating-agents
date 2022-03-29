@@ -1,9 +1,10 @@
-#!/usr/bin/env python3
+"""Criterion value"""
 
 
 class CriterionValue:
     """CriterionValue class.
-    This class implements the CriterionValue object which associates an item with a CriterionName and a Value.
+    This class implements the CriterionValue object which associates
+    an item with a CriterionName and a Value.
     """
 
     def __init__(self, item, criterion_name, value):

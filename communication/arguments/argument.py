@@ -1,7 +1,8 @@
-#!/usr/bin/env python3
+"""Argument class."""
+from typing import List
 
-from communication.arguments.Comparison import Comparison
-from communication.arguments.CoupleValue import CoupleValue
+from communication.arguments.comparison import Comparison
+from communication.arguments.couple_value import CoupleValue
 from communication.preferences import Item, Preferences, Value
 
 
@@ -16,12 +17,12 @@ class Argument:
         couple_values_list:
     """
 
-    def __init__(self, boolean_decision, item):
+    def __init__(self, boolean_decision: bool, item: Item):
         """Creates a new Argument."""
         self.__decision = boolean_decision
-        self.__item = item
-        self.__comparison_list = []
-        self.__couple_values_list = []
+        self.__item: Item = item
+        self.__comparison_list: List[Comparison] = []
+        self.__couple_values_list: List[CoupleValue] = []
 
     @property
     def decision(self):
@@ -31,7 +32,7 @@ class Argument:
     @property
     def item(self):
         """Item"""
-        return self.item
+        return self.__item
 
     def add_premiss_comparison(self, comparison):
         """Adds a premiss comparison in the comparison list."""
@@ -54,25 +55,26 @@ class Argument:
             + ", ".join(map(str, self.__comparison_list))
         )
 
-    def get_item(self):
+    def get_item(self) -> Item:
         """To get the item"""
         return self.__item
 
-    def get_decision(self):
+    def get_decision(self) -> bool:
         """To get the decision"""
         return self.__decision
 
-    def get_premises_comparison(self):
+    def get_premises_comparison(self) -> List[Comparison]:
         """To get the premises comparions"""
         return self.__comparison_list
 
-    def get_premises_couple_values(self):
+    def get_premises_couple_values(self) -> List[CoupleValue]:
         """To get the premises couple values"""
         return self.__couple_values_list
 
     @staticmethod
     def list_supporting_proposal(item: Item, preferences: Preferences):
-        """Generate a list of premisses which can be used to support an item :param item: Item - name of the item
+        """Generate a list of premisses which can be used to support an item
+        :param item: Item - name of the item
         :return: list of all premisses PRO an item (sorted by order of importance
         based on agent’s preferences)"""
         return sorted(
@@ -81,7 +83,7 @@ class Argument:
                 for criterion in preferences.get_criterion_name_list()
                 if preferences.get_value(item, criterion).value >= Value.GOOD.value
             ],
-            key=lambda cv: cv.value.value,
+            key=lambda cv: cv.value.value,  # type: ignore
             reverse=True,
         )
 
@@ -94,6 +96,6 @@ class Argument:
                 for criterion in preferences.get_criterion_name_list()
                 if preferences.get_value(item, criterion).value < Value.GOOD.value
             ],
-            key=lambda cv: cv.value.value,
+            key=lambda cv: cv.value.value,  # type: ignore
             reverse=True,
         )

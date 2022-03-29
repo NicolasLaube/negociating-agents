@@ -1,10 +1,13 @@
-#!/usr/bin/env python3
+"""Preferences"""
+
+
+import random
 from typing import List
-from random import random
-from communication.preferences.CriterionName import CriterionName
-from communication.preferences.CriterionValue import CriterionValue
+
+from communication.preferences.criterion_name import CriterionName
+from communication.preferences.criterion_value import CriterionValue
 from communication.preferences.item import Item
-from communication.preferences.Value import Value
+from communication.preferences.value import Value
 
 
 class Preferences:
@@ -53,11 +56,13 @@ class Preferences:
 
     def is_preferred_criterion(self, criterion_name_1, criterion_name_2):
         """Returns if a criterion 1 is preferred to the criterion 2."""
+        # TODDO verify this function
         for criterion_name in self.__criterion_name_list:
             if criterion_name == criterion_name_1:
                 return True
             if criterion_name == criterion_name_2:
                 return False
+        return False
 
     def is_preferred_item(self, item_1, item_2):
         """Returns if the item 1 is preferred to the item 2."""
@@ -65,10 +70,8 @@ class Preferences:
 
     def most_preferred(self, item_list: List[Item]) -> Item:
         """Returns the most preferred item from a list."""
-        sorted_item_list = sorted(
-            item_list,
-            key=lambda item: item.get_score(self),
-            reverse=True,
+        sorted_item_list: List[Item] = sorted(
+            item_list, key=lambda item: item.get_score(self), reverse=True  # type: ignore
         )
         if len(sorted_item_list) > 1 and sorted_item_list[0].get_score(
             self
@@ -84,7 +87,7 @@ class Preferences:
         """
         sorted_item_list = sorted(
             item_list,
-            key=lambda item: item.get_score(self),
+            key=lambda item: item.get_score(self),  # type: ignore
             reverse=True,
         )
         return item in sorted_item_list[: int(len(sorted_item_list) * 0.1)]
@@ -138,7 +141,7 @@ if __name__ == "__main__":
         CriterionValue(electric_engine, CriterionName.NOISE, Value.VERY_GOOD)
     )
 
-    """test list of preferences"""
+    # test list of preferences
     print(diesel_engine)
     print(electric_engine)
     print(diesel_engine.get_value(agent_pref, CriterionName.PRODUCTION_COST))
@@ -148,26 +151,19 @@ if __name__ == "__main__":
         )
     )
     print(
-        "Electric Engine > Diesel Engine : {}".format(
-            agent_pref.is_preferred_item(electric_engine, diesel_engine)
-        )
+        f"""Electric Engine > Diesel Engine : {agent_pref.is_preferred_item(
+            electric_engine, diesel_engine
+        )}"""
     )
     print(
-        "Diesel Engine > Electric Engine : {}".format(
-            agent_pref.is_preferred_item(diesel_engine, electric_engine)
-        )
+        f"""Diesel Engine > Electric Engine : {agent_pref.is_preferred_item(
+            diesel_engine, electric_engine
+        )}"""
     )
+    print(f"Electric Engine (for agent 1) = {electric_engine.get_score(agent_pref)}")
+    print(f"Diesel Engine (for agent 1) = {diesel_engine.get_score(agent_pref)}")
     print(
-        "Electric Engine (for agent 1) = {}".format(
-            electric_engine.get_score(agent_pref)
-        )
-    )
-    print(
-        "Diesel Engine (for agent 1) = {}".format(diesel_engine.get_score(agent_pref))
-    )
-
-    print(
-        "Most preferred item is : {}".format(
-            agent_pref.most_preferred([diesel_engine, electric_engine]).get_name()
-        )
+        f"""Most preferred item is : {agent_pref.most_preferred(
+            [diesel_engine, electric_engine]).get_name()
+        }"""
     )

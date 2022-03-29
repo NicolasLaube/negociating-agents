@@ -1,11 +1,9 @@
-#!/usr/bin/env python3
-
-import logging
-from communication.message.Message import Message
+"""Comminucating agent."""
 from mesa import Agent
 
 from communication.mailbox.mailbox import Mailbox
-from communication.message.MessageService import MessageService
+from communication.message.message import Message
+from communication.message.message_service import MessageService
 
 
 class CommunicatingAgent(Agent):
@@ -21,16 +19,16 @@ class CommunicatingAgent(Agent):
         message_service: The message service used to send and receive message (MessageService)
     """
 
-    def __init__(self, unique_id, model, name: str, verbose: bool = False):
+    def __init__(self, unique_id, model, name: str):
         """Create a new communicating agent."""
         super().__init__(unique_id, model)
         self.__name = name
         self.__mailbox = Mailbox()
         self.__messages_service = MessageService.get_instance()
 
-    def step(self):
-        """The step methods of the agent called by the scheduler at each time tick."""
-        super().step()
+    # def step(self):
+    #     """The step methods of the agent called by the scheduler at each time tick."""
+    #     super().step()
 
     def get_name(self):
         """Return the name of the communicating agent."""

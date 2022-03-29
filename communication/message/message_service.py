@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+"""Message service."""
 
 
 class MessageService:
@@ -23,18 +23,19 @@ class MessageService:
         """Create a new MessageService object."""
         if MessageService.__instance is not None:
             raise Exception("This class is a singleton!")
-        else:
-            MessageService.__instance = self
-            self.__scheduler = scheduler
-            self.__instant_delivery = instant_delivery
-            self.__messages_to_proceed = []
+
+        MessageService.__instance = self
+        self.__scheduler = scheduler
+        self.__instant_delivery = instant_delivery
+        self.__messages_to_proceed = []
 
     def set_instant_delivery(self, instant_delivery):
         """Set the instant delivery parameter."""
         self.__instant_delivery = instant_delivery
 
     def send_message(self, message):
-        """Dispatch message if instant delivery active, otherwise add the message to proceed list."""
+        """Dispatch message if instant delivery active,
+        otherwise add the message to proceed list."""
         if self.__instant_delivery:
             self.dispatch_message(message)
         else:
@@ -57,3 +58,4 @@ class MessageService:
         for agent in self.__scheduler.agents:
             if agent.get_name() == agent_name:
                 return agent
+        return None

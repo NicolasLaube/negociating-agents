@@ -1,30 +1,27 @@
-from ast import arg
+"""Argumentation."""
 import csv
+import random
 from enum import Enum
 from functools import reduce
-import random
-from typing import List, Union, Tuple
-from communication.arguments import Argument
-from communication.arguments.Comparison import Comparison
-from communication.arguments.CoupleValue import CoupleValue
-from communication.message.Message import Message
-
-from communication.message.MessagePerformative import MessagePerformative
-from communication import Item
+from typing import List
 
 from mesa import Model
 from mesa.time import RandomActivation
 
-from communication.agent.CommunicatingAgent import CommunicatingAgent
-from communication.message.MessageService import MessageService
+from communication.agent.communicating_agent import CommunicatingAgent
+from communication.arguments.argument import Argument
+from communication.arguments.comparison import Comparison
+from communication.arguments.couple_value import CoupleValue
+from communication.message.message import Message
+from communication.message.message_performative import MessagePerformative
+from communication.message.message_service import MessageService
 from communication.preferences import (
-    Preferences,
-    Item,
-    CriterionValue,
     CriterionName,
+    CriterionValue,
+    Item,
+    Preferences,
     Value,
 )
-from communication.arguments.Argument import Argument
 
 
 class NegotationState(Enum):
@@ -44,8 +41,8 @@ class ArgumentAgent(CommunicatingAgent):
 
     def __init__(self, unique_id, model, name, items: List[Item]):
         super().__init__(unique_id, model, name)
-        self.preferences = None
-        self.items = items  # added
+        self.__preferences: Preferences = Preferences()
+        self.items: List[Item] = items  # added
         self.negotation_state = NegotationState.REST
         self.proposed_item = None
         self.convinced_agents = None
@@ -71,13 +68,18 @@ class ArgumentAgent(CommunicatingAgent):
             self.negotation_state = NegotationState.ARGUING
             self.proposed_item = self.items[0]
 
+    @property
+    def preferences(self) -> Preferences:
+        """Get preferences"""
+        return self.__preferences
+
+    # pylint: disable=R0912, R1702
     def step(self):
         """Step function"""
 
         # First step: we must begin the conversation
         if self.negotation_state == NegotationState.REST:
             self.start_conversation()
-            
 
         new_messages = self.get_new_messages()
         for new_message in new_messages:
@@ -227,17 +229,12 @@ class ArgumentAgent(CommunicatingAgent):
                             self.items.pop(self.items.index(self.proposed_item))
                             self.negotation_state = NegotationState.FINISHED
 
-    def get_preferences(self):
-        """Get preference"""
-        return self.preferences
-
     def load_preferences(self, path: str):
         """Load preferences from csv"""
         with open(path, "r", encoding="utf-8") as file:
             reader = csv.reader(file)
             categories = next(reader)
-            preferences = Preferences()
-            preferences.set_criterion_name_list(
+            self.__preferences.set_criterion_name_list(
                 [CriterionName(x) for x in categories[1:]]
             )
             # print("criterion name list ", preferences.criterion_name_list)
@@ -249,43 +246,44 @@ class ArgumentAgent(CommunicatingAgent):
                     criterion_value = CriterionValue(
                         new_item, CriterionName(criterion_name), Value(int(row[i + 1]))
                     )
-                    preferences.add_criterion_value(criterion_value)
+                    self.__preferences.add_criterion_value(criterion_value)
 
-            self.preferences = preferences
             self.items = sorted(
-                items, key=lambda item: item.get_score(self.preferences), reverse=True
+                items,
+                key=lambda item: item.get_score(self.__preferences),  # type: ignore
+                reverse=True,
             )
 
     def generate_random_preferences(
         self, items: List[Item], criteria: List[CriterionName]
     ):
         """Generate preferences"""
-        preferences = Preferences()
         random.shuffle(criteria)
-        preferences.set_criterion_name_list(criteria)
+        self.__preferences.set_criterion_name_list(criteria)
         for item in items:
             for criterion in criteria:
-                preferences.add_criterion_value(
+                self.__preferences.add_criterion_value(
                     CriterionValue(item, criterion, random.choice(list(Value)))
                 )
-        self.preferences = preferences
         self.items = sorted(
-            items, key=lambda item: item.get_score(self.preferences), reverse=True
+            items, key=lambda item: item.get_score(self.__preferences), reverse=True  # type: ignore
         )
 
-    def support_proposal(self, item: Item) -> str:
+    def support_proposal(self, item: Item) -> Argument:
         """
-        Used when the agent receives "ASK_WHY" after having proposed an item :param item: str - name of the item which was proposed
+        Used when the agent receives "ASK_WHY" after having proposed an item :param item: str
+         - name of the item which was proposed
         :return: string - the strongest supportive argument
         """
-        all_cv = Argument.list_supporting_proposal(item, self.preferences)
+        all_cv = Argument.list_supporting_proposal(item, self.__preferences)
         arg = Argument(True, item)
         arg.add_premiss_couple_values(all_cv[0])
         return arg
 
+    @staticmethod
     def argument_parsing(
-        self, argument: Argument
-    ) -> Tuple[Union[Comparison, CoupleValue], Item, bool]:
+        argument: Argument,
+    ):
         """Parse an argument"""
         return (
             argument.get_premises_comparison(),
@@ -301,57 +299,58 @@ class ArgumentAgent(CommunicatingAgent):
         item: Item,
         is_chosen: bool,
     ):
+        """Attack argument"""
         counter_arg = None
         for premise in premises_couple_value:
             # For me, the evaluated criterion is bad
             if is_chosen and premise.value.value < min(
-                self.preferences.get_value(item, premise.criterion_name).value,
+                self.__preferences.get_value(item, premise.criterion_name).value,
                 Value.AVERAGE.value,
             ):
-                if counter_arg == None:
+                if counter_arg is None:
                     counter_arg = Argument(not is_chosen, item)
                 counter_arg.add_premiss_couple_values(
                     CoupleValue(
                         premise.criterion_name,
-                        self.preferences.get_value(item, premise.criterion_name),
+                        self.__preferences.get_value(item, premise.criterion_name),
                     )
                 )
             # I've found a criterion of better importance that invalidates the goal
             else:
                 best_criterion, best_value = None, -1
-                for criterion in self.preferences.get_criterion_name_list():
+                for criterion in self.__preferences.get_criterion_name_list():
                     if criterion == premise.criterion_name:
                         break
                     if (
                         is_chosen
-                        and self.preferences.get_value(item, criterion).value
+                        and self.__preferences.get_value(item, criterion).value
                         < min(
                             Value.AVERAGE.value,
                             max(
                                 [
-                                    self.preferences.get_value(it, criterion).value
+                                    self.__preferences.get_value(it, criterion).value
                                     for it in self.items
                                 ]
                             ),
                         )
                     ) or (
                         not is_chosen
-                        and self.preferences.get_value(item, criterion).value
+                        and self.__preferences.get_value(item, criterion).value
                         > max(
                             Value.GOOD.value,
                             min(
                                 [
-                                    self.preferences.get_value(it, criterion).value
+                                    self.__preferences.get_value(it, criterion).value
                                     for it in self.items
                                 ]
                             ),
                         )
                     ):
-                        if counter_arg == None:
+                        if counter_arg is None:
                             counter_arg = Argument(not is_chosen, item)
                         counter_arg.add_premiss_couple_values(
                             CoupleValue(
-                                criterion, self.preferences.get_value(item, criterion)
+                                criterion, self.__preferences.get_value(item, criterion)
                             )
                         )
                         counter_arg.add_premiss_comparison(
@@ -363,7 +362,7 @@ class ArgumentAgent(CommunicatingAgent):
                         best_value = self.preferences.get_value(item, criterion).value
         if counter_arg is not None:
             return counter_arg
-        elif not is_chosen:
+        if not is_chosen:
             argument = Argument(True, item)
             argument.add_premiss_couple_values(
                 CoupleValue(
@@ -378,20 +377,20 @@ class ArgumentAgent(CommunicatingAgent):
             else premises_comparison[0].best_criterion_name
         )
         for new_item in self.items:
-            if self.preferences.get_value(
+            if self.__preferences.get_value(
                 new_item, criterion_name
-            ).value > self.preferences.get_value(
+            ).value > self.__preferences.get_value(
                 item, criterion_name
             ).value and new_item.get_score(
-                self.preferences
+                self.__preferences
             ) > item.get_score(
-                self.preferences
+                self.__preferences
             ):
                 counter_arg = Argument(True, new_item)
                 counter_arg.add_premiss_couple_values(
                     CoupleValue(
                         criterion_name,
-                        self.preferences.get_value(new_item, criterion_name),
+                        self.__preferences.get_value(new_item, criterion_name),
                     )
                 )
         return counter_arg
@@ -403,6 +402,7 @@ class ArgumentModel(Model):
     def __init__(
         self, number_agents: int, items: List[Item], criteria: List[CriterionName]
     ):
+        super().__init__()
         self.schedule = RandomActivation(self)
         self.__messages_service = MessageService(self.schedule)
         self.items = items

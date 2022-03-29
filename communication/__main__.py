@@ -1,5 +1,6 @@
+"""Main script for the communication."""
 from communication import Item
-from communication.preferences.CriterionName import CriterionName
+from communication.preferences.criterion_name import CriterionName
 from communication.pw_argumentation import ArgumentModel
 
 print("Testing two agents communication")
