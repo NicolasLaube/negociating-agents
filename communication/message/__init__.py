@@ -1,3 +1,3 @@
-from communication.message.Message import *
-from communication.message.MessagePerformative import *
-from communication.message.MessageService import *
+from communication.message.message import *
+from communication.message.message_performative import *
+from communication.message.message_service import *
