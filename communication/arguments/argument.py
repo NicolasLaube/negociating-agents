@@ -1,7 +1,7 @@
 """Argument class."""
 from typing import List
 
-from communication.arguments.Comparison import Comparison
+from communication.arguments.comparison import Comparison
 from communication.arguments.couple_value import CoupleValue
 from communication.preferences import Item, Preferences, Value
 
