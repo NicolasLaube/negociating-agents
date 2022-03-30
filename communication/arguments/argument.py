@@ -3,7 +3,7 @@ from typing import List
 
 from communication.arguments.comparison import Comparison
 from communication.arguments.couple_value import CoupleValue
-from communication.preferences import Item, Preferences, Value
+from communication.preferences import Item
 
 
 class Argument:
@@ -44,7 +44,7 @@ class Argument:
 
     def __str__(self) -> str:
         return (
-            f"{'¬' if not self.__decision else ''}{self.__item.get_name()} ← "
+            f"{'¬' if not self.__decision else ''}{self.__item.name} ← "
             + ", ".join(map(str, self.__couple_values_list))
             + (
                 ", "
@@ -54,10 +54,6 @@ class Argument:
             )
             + ", ".join(map(str, self.__comparison_list))
         )
-
-    def get_item(self) -> Item:
-        """To get the item"""
-        return self.__item
 
     def get_decision(self) -> bool:
         """To get the decision"""
@@ -70,32 +66,3 @@ class Argument:
     def get_premises_couple_values(self) -> List[CoupleValue]:
         """To get the premises couple values"""
         return self.__couple_values_list
-
-    @staticmethod
-    def list_supporting_proposal(item: Item, preferences: Preferences):
-        """Generate a list of premisses which can be used to support an item
-        :param item: Item - name of the item
-        :return: list of all premisses PRO an item (sorted by order of importance
-        based on agent’s preferences)"""
-        return sorted(
-            [
-                CoupleValue(criterion, preferences.get_value(item, criterion))
-                for criterion in preferences.get_criterion_name_list()
-                if preferences.get_value(item, criterion).value >= Value.GOOD.value
-            ],
-            key=lambda cv: cv.value.value,  # type: ignore
-            reverse=True,
-        )
-
-    @staticmethod
-    def list_attacking_proposal(item: Item, preferences: Preferences):
-        """List attacking proposal"""
-        return sorted(
-            [
-                CoupleValue(criterion, preferences.get_value(item, criterion))
-                for criterion in preferences.get_criterion_name_list()
-                if preferences.get_value(item, criterion).value < Value.GOOD.value
-            ],
-            key=lambda cv: cv.value.value,  # type: ignore
-            reverse=True,
-        )

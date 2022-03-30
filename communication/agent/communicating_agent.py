@@ -30,7 +30,8 @@ class CommunicatingAgent(Agent):
     #     """The step methods of the agent called by the scheduler at each time tick."""
     #     super().step()
 
-    def get_name(self):
+    @property
+    def name(self):
         """Return the name of the communicating agent."""
         return self.__name
 
@@ -40,7 +41,7 @@ class CommunicatingAgent(Agent):
 
     def send_message(self, message):
         """Send message through the MessageService object."""
-        performative = message.get_performative()
+        performative = message.performative
 
         print(f"Agent{self.unique_id} - {performative}({message})")
 

@@ -48,7 +48,7 @@ class Preferences:
         """Gets the value for a given item and a given criterion name."""
         for value in self.__criterion_value_list:
             if (
-                value.get_item().get_name() == item.get_name()
+                value.get_item().name == item.name
                 and value.get_criterion_name() == criterion_name
             ):
                 return value.get_value()
@@ -90,7 +90,7 @@ class Preferences:
             key=lambda item: item.get_score(self),  # type: ignore
             reverse=True,
         )
-        return item in sorted_item_list[: int(len(sorted_item_list) * 0.1)]
+        return item in sorted_item_list[: max(1, int(len(sorted_item_list) * 0.1))]
 
 
 if __name__ == "__main__":
@@ -164,6 +164,6 @@ if __name__ == "__main__":
     print(f"Diesel Engine (for agent 1) = {diesel_engine.get_score(agent_pref)}")
     print(
         f"""Most preferred item is : {agent_pref.most_preferred(
-            [diesel_engine, electric_engine]).get_name()
+            [diesel_engine, electric_engine]).name
         }"""
     )

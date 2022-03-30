@@ -1,4 +1,6 @@
 """CoupleValue class."""
+from communication.preferences.criterion_name import CriterionName
+from communication.preferences.value import Value
 
 
 class CoupleValue:
@@ -10,7 +12,7 @@ class CoupleValue:
         value:
     """
 
-    def __init__(self, criterion_name, value):
+    def __init__(self, criterion_name: CriterionName, value: Value):
         """Creates a new couple value."""
         self.__criterion_name = criterion_name
         self.__value = value
