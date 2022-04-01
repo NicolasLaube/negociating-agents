@@ -23,6 +23,7 @@ class Preferences:
         """Creates a new Preferences object."""
         self.__criterion_name_list = []
         self.__criterion_value_list = []
+        print("hhahahahaahh")
 
     # @property
     # def criterion_name_list(self):
@@ -91,6 +92,35 @@ class Preferences:
             reverse=True,
         )
         return item in sorted_item_list[: max(1, int(len(sorted_item_list) * 0.1))]
+
+    def set_criterion_pair(
+        self, less_preferred: CriterionName, more_preferred: CriterionName
+    ) -> None:
+        """To set a criterion pair."""
+        i_less, i_more = -1, -1
+        for i, criterion in enumerate(self.__criterion_name_list):
+            if criterion == less_preferred:
+                i_less = i
+            if criterion == more_preferred:
+                i_most = i
+        if i_less == -1 or i_most == -1:
+            raise Exception("The criterion pair is not in the list of criterion names.")
+        if i_less < i_most:
+            self.__criterion_name_list[i_less], self.__criterion_name_list[i_more] = (
+                self.__criterion_name_list[i_more],
+                self.__criterion_name_list[i_less],
+            )
+
+    def set_criterion_value(
+        self, item: Item, criterion_name: CriterionName, item_value: Value
+    ) -> None:
+        """To set a criterion value."""
+        for criterion_value in self.__criterion_value_list:
+            if (
+                criterion_value.get_item().name == item.name
+                and criterion_value.get_criterion_name() == criterion_name
+            ):
+                criterion_value.set_value(item_value)
 
 
 if __name__ == "__main__":

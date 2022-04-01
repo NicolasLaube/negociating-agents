@@ -1,7 +1,6 @@
 """Argument agent"""
 # pylint: disable=W0631
-import csv
-import random
+from copy import deepcopy
 from functools import reduce
 from typing import Dict, List, Optional
 
@@ -38,6 +37,7 @@ class ArgumentAgent(CommunicatingAgent):
         self.negotation_state = NegotationState.REST
         self.favorite_item = self.items[0]
         self.convinced_agents: Dict[str, bool] = {}
+        self.other_agent_views = {}
         self.arguments_used = []
         self.item_was_proposed = False
 
@@ -76,11 +76,31 @@ class ArgumentAgent(CommunicatingAgent):
 
             # Fourth case: the other agent sends an argue why message
             elif new_message.performative == MessagePerformative.ARGUE:
+                self.__add_view_to_history(new_message)
                 self.__argue_performative_callback(new_message)
 
             # Fifth case: the other agent sends a commit message
             elif new_message.performative == MessagePerformative.COMMIT:
                 self.__commit_performative_callback(new_message)
+
+    def __add_view_to_history(self, new_message: Message) -> None:
+        """Add view to history"""
+        if new_message.sender not in self.other_agent_views:
+            self.other_agent_views[new_message.sender] = deepcopy(self.preferences)
+        if isinstance(new_message.content, Argument):
+            argument = new_message.content
+            preferences = self.other_agent_views[new_message.sender]
+            for comparison in argument.premises_comparison:
+                preferences.set_criterion_pair(
+                    comparison.worst_criterion_name, comparison.best_criterion_name
+                )
+
+            for couple_value in argument.premises_couple_values:
+                preferences.set_criterion_value(
+                    argument.item, couple_value.criterion_name, couple_value.value
+                )
+
+        print([argument for argument in self.other_agent_views])
 
     def __start_conversation(self):
         """Start conversation"""
@@ -121,15 +141,15 @@ class ArgumentAgent(CommunicatingAgent):
                         self.favorite_item,
                     )
                 )
-                self.items.pop(
-                    [item.name for item in self.items].index(self.favorite_item.name)
-                )
+                # self.items.pop(
+                #     [item.name for item in self.items].index(self.favorite_item.name)
+                # )
                 self.negotation_state = NegotationState.FINISHED
             elif self.negotation_state == NegotationState.WAITING_FOR_COMMIT:
                 self.convinced_agents[message.sender] = True
 
                 if reduce(lambda x, y: x and y, self.convinced_agents.values()):
-                    self.items.pop(self.items.index(self.favorite_item))
+                    # self.items.pop(self.items.index(self.favorite_item))
                     self.negotation_state = NegotationState.FINISHED
         else:
             print("Commit message is not valid")
@@ -171,16 +191,8 @@ class ArgumentAgent(CommunicatingAgent):
             ) and self.preferences.is_item_among_top_10_percent(
                 message.content, self.items
             ):
-                self.send_message(
-                    Message(
-                        self.name,
-                        message.sender,
-                        MessagePerformative.ACCEPT,
-                        message.content,
-                    )
-                )
-                # self.favorite_item = message.content
-                self.negotation_state = NegotationState.WAITING_ANSWER_ACCEPT
+                self.__send_accept_message(message.sender)
+
             elif isinstance(message.content, Item):
                 self.send_message(
                     Message(
@@ -220,7 +232,7 @@ class ArgumentAgent(CommunicatingAgent):
             print(self.favorite_item.name != message.content.name)
             print("Ask why message is not valid")
 
-    def __proprose_my_favorite_item_if_not_already(self, agent_name: str):
+    def __propose_my_favorite_item_if_not_already(self, agent_name: str):
         """Propose my favorite item if not proposed before"""
         if not self.item_was_proposed:
             self.send_message(
@@ -241,47 +253,9 @@ class ArgumentAgent(CommunicatingAgent):
             and self.negotation_state == NegotationState.ARGUING
             and self.favorite_item.name == message.content.item.name
         ):
-            argument = self.attack_argument(*self.argument_parsing(message.content))
-            self.arguments_used.append(argument)
+            self.__send_attack_message(message)
 
-            self.__proprose_my_favorite_item_if_not_already(agent.name)
-
-            if argument is None:
-                self.send_message(
-                    Message(
-                        self.name,
-                        message.sender,
-                        MessagePerformative.ACCEPT,
-                        self.favorite_item,
-                    )
-                )
-                self.negotation_state = NegotationState.WAITING_ANSWER_ACCEPT
-
-            elif argument.item.name == self.favorite_item.name:
-                self.arguments_used.append(argument)
-                self.send_message(
-                    Message(
-                        self.name,
-                        message.sender,
-                        MessagePerformative.ARGUE,
-                        argument,
-                    )
-                )
-
-            else:
-                self.favorite_item = argument.get_item()
-                self.convinced_agents = {}
-                for agent in self.model.schedule.agents:
-                    if agent.name != self.name:
-                        self.send_message(
-                            Message(
-                                self.name,
-                                agent.name,
-                                MessagePerformative.PROPOSE,
-                                argument.get_item(),
-                            )
-                        )
-                        self.convinced_agents[agent.name] = False
+            # self.__propose_my_favorite_item_if_not_already(agent.name)
 
         elif isinstance(message.content, Argument):
             if not self.item_was_proposed:
@@ -299,16 +273,69 @@ class ArgumentAgent(CommunicatingAgent):
             counter_argument = self.attack_argument(
                 *self.argument_parsing(message.content)
             )
-            self.arguments_used.append(counter_argument)
+            if counter_argument is not None:
 
+                self.arguments_used.append(counter_argument)
+
+                self.send_message(
+                    Message(
+                        self.name,
+                        message.sender,
+                        MessagePerformative.ARGUE,
+                        counter_argument,
+                    )
+                )
+            else:
+                self.__send_accept_message(message.sender)
+
+    def __send_accept_message(self, dest: str):
+        """Sends an accept messsage"""
+        self.send_message(
+            Message(
+                self.name,
+                dest,
+                MessagePerformative.ACCEPT,
+                self.favorite_item,
+            )
+        )
+        self.negotation_state = NegotationState.WAITING_ANSWER_ACCEPT
+
+    def __send_attack_message(self, message: Message):
+        """Send attack message"""
+        argument = self.attack_argument(*self.argument_parsing(message.content))
+        if argument is None:
+            self.__send_accept_message(message.sender)
+            return
+        if argument is not None:
+            self.arguments_used.append(argument)
+
+        if argument.item.name == self.favorite_item.name:
+            self.arguments_used.append(argument)
             self.send_message(
                 Message(
                     self.name,
                     message.sender,
                     MessagePerformative.ARGUE,
-                    counter_argument,
+                    argument,
                 )
             )
+
+        else:
+            self.favorite_item = argument.get_item()
+            self.convinced_agents = {}
+            for agent in self.model.schedule.agents:
+                if agent.name != self.name:
+                    self.send_message(
+                        Message(
+                            self.name,
+                            agent.name,
+                            MessagePerformative.PROPOSE,
+                            argument.get_item(),
+                        )
+                    )
+                    self.convinced_agents[agent.name] = False
+
+        return argument
 
     def __argument_was_used(self, argument: Argument) -> bool:
         """Check if the argument was used in the negotiation"""
@@ -399,7 +426,9 @@ class ArgumentAgent(CommunicatingAgent):
                     return True
         return False
 
-    def other_more_important_criterion_is_bad(self, premise: CoupleValue, item: Item):
+    def other_more_important_criterion_is_bad(
+        self, premise: CoupleValue, item: Item
+    ) -> Optional[CriterionName]:
         """Check if there is another more important criterion"""
         for criterion in self.__preferences.get_criterion_name_list():
             if (
@@ -411,11 +440,11 @@ class ArgumentAgent(CommunicatingAgent):
 
         return None
 
-    def other_crietrion_nice(self, premise: CoupleValue, item: Item):
+    def other_item_better_on_criterion(self, premise: CoupleValue, item: Item):
         """Other crietrion"""
         for criterion in self.__preferences.get_criterion_name_list():
 
-            if self.__preferences.get_value(item, criterion).value > max(
+            if self.__preferences.get_value(item, criterion).value > min(
                 Value.GOOD.value,
                 min(
                     [
@@ -424,7 +453,6 @@ class ArgumentAgent(CommunicatingAgent):
                     ]
                 ),
             ):
-                print(criterion)
                 return criterion
 
         return None
@@ -438,6 +466,9 @@ class ArgumentAgent(CommunicatingAgent):
             ).value,
         )
 
+    def argument_is_attackable(self) -> bool:
+        """Checks if an argument is attackable"""
+
     def attack_argument(
         self,
         premises_comparison: List[Comparison],
@@ -446,6 +477,14 @@ class ArgumentAgent(CommunicatingAgent):
         is_chosen: bool,
     ):
         """Attack argument"""
+        # if not self.argument_is_attackable(premises_comparison, premises_couple_value):
+        #     self.send_message(
+        #         Message(
+        #             from_agent=
+        #         )
+        #     )
+        # if self.___propose_my_favorite_item_if_not_already():
+        #     return
 
         def argue_criterion_is_bad(arg: Optional[Argument]):
             """Argue criterion is bad"""
@@ -494,117 +533,46 @@ class ArgumentAgent(CommunicatingAgent):
         for premise in premises_couple_value:  # couple criterion value
 
             if is_chosen:
+                # Another more important criterion is bad
                 bad_criterion = self.other_more_important_criterion_is_bad(
                     premise, item
                 )
-
-                # For me, the evaluated criterion is bad
-                if self.criterion_is_bad(premise, item):
-                    counter_argument = argue_criterion_is_bad(counter_argument)
-
-                # I prefer another item who is better for this criterion
-                if self.found_better_item_for_criterion(premise, item):
-                    counter_argument = argue_found_better_item_for_criterion(
-                        counter_argument
-                    )
-
                 if bad_criterion is not None:
                     counter_argument = (
                         argue_found_other_more_important_criterion_is_bad(
                             counter_argument, bad_criterion
                         )
                     )
-            else:
-                nice_criterion = self.other_crietrion_nice(premise=premise, item=item)
 
-                if nice_criterion is not None:
+                # For me, the evaluated criterion is bad
+                if counter_argument is not None and self.criterion_is_bad(
+                    premise, item
+                ):
+                    counter_argument = argue_criterion_is_bad(counter_argument)
 
-                    counter_argument = argue_found_other_more_important_criterion_is_bad(
-                        counter_argument, nice_criterion
+                # I prefer another item which is better for this criterion
+                if (
+                    counter_argument is not None
+                    and self.found_better_item_for_criterion(premise, item)
+                ):
+                    counter_argument = argue_found_better_item_for_criterion(
+                        counter_argument
                     )
-                else:
-                    print("not enough cc")
-                    return self.support_proposal(item)
-            # I've found a criterion of better importance that invalidates the goal
-            # else:
-            #     best_criterion, best_value = None, -1
 
-            #     for criterion in self.__preferences.get_criterion_name_list():
-            #         # if criterion == premise.criterion_name:
-            #         #     break
-            #         # if (
-            #     if criterion != premise.criterion_name and self.__preferences.get_value(
-            #     item, criterion
-            # ).value < min(
-            #     Value.AVERAGE.value,
-            #     max(
-            #         [
-            #             self.__preferences.get_value(it, criterion).value
-            #             for it in self.items
-            #         ]
-            #     ),
-            # )
-            #         # ) or (
-            #         #     not is_chosen
-            #         #     and self.__preferences.get_value(item, criterion).value
-            #         #     > max(
-            #         #         Value.GOOD.value,
-            #         #         min(
-            #         #             [
-            #         #                 self.__preferences.get_value(it, criterion).value
-            #         #                 for it in self.items
-            #         #             ]
-            #         #         ),
-            #         #     )
-            #         # ):
-            #         #     if counter_argument is None:
-            #         #         counter_argument = Argument(not is_chosen, item)
-            #         #     counter_argument.add_premiss_couple_values(
-            #         #         CoupleValue(
-            #         #             criterion, self.__preferences.get_value(item, criterion)
-            #         #         )
-            #         #     )
-            #         #     counter_argument.add_premiss_comparison(
-            #         #         Comparison(criterion, premise.criterion_name)
-            #         #     )
-            #         #     break
-            #         if self.preferences.get_value(item, criterion).value > best_value:
-            #             best_criterion = criterion
-            #             best_value = self.preferences.get_value(item, criterion).value
+                if counter_argument is not None:
+                    return counter_argument
 
-        # best_criterion = self.get_best_criterion(item)
+                return None
 
-        # if counter_argument is not None:
-        #     return counter_argument
-        # if not is_chosen:
-        #     argument = Argument(True, item)
-        #     argument.add_premiss_couple_values(
-        #         CoupleValue(
-        #             best_criterion, self.preferences.get_value(item, best_criterion)
-        #         )
-        #     )
-        #     return argument
-        # # I've found a better object on the criterion you're talking
-        # criterion_name = (
-        #     premises_couple_value[0].criterion_name
-        #     if len(premises_couple_value) > 0
-        #     else premises_comparison[0].best_criterion_name
-        # )
-        # for new_item in self.items:
-        #     if self.__preferences.get_value(
-        #         new_item, criterion_name
-        #     ).value > self.__preferences.get_value(
-        #         item, criterion_name
-        #     ).value and new_item.get_score(
-        #         self.__preferences
-        #     ) > item.get_score(
-        #         self.__preferences
-        #     ):
-        #         counter_argument = Argument(True, new_item)
-        #         counter_argument.add_premiss_couple_values(
-        #             CoupleValue(
-        #                 criterion_name,
-        #                 self.__preferences.get_value(new_item, criterion_name),
-        #             )
-        #         )
-        return counter_argument
+            else:
+                other_item_better_on_crietrion = self.other_item_better_on_criterion(
+                    premise=premise, item=item
+                )
+
+                if other_item_better_on_crietrion is not None:
+
+                    return argue_found_other_more_important_criterion_is_bad(
+                        counter_argument, other_item_better_on_crietrion
+                    )
+
+                return None
