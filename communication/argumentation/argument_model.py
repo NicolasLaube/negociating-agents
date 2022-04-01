@@ -1,5 +1,7 @@
 """Argument model"""
 from typing import List
+from communication.argumentation.preferences_generator import load_preferences
+from communication.preferences.preferences import Preferences
 
 from mesa import Model
 from mesa.time import RandomActivation
@@ -23,9 +25,10 @@ class ArgumentModel(Model):
         self.criteria = criteria
 
         for i in range(1, number_agents + 1):
-            agent = ArgumentAgent(i, self, f"Agent{i}", self.items)
-            agent.load_preferences(f"data/preferences/p{i}.csv")
-            # agent.generate_random_preferences(self.items, self.criteria)
+            preferences = load_preferences(f"data/preferences/p{i}.csv")
+            agent = ArgumentAgent(i, self, f"Agent{i}", self.items, preferences)
+            print(agent)
+
             self.schedule.add(agent)
 
         self.running = True

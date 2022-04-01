@@ -30,3 +30,10 @@ class CoupleValue:
     def __str__(self) -> str:
         """String couple value"""
         return f"{self.__criterion_name.name} = {self.__value.name}"
+
+    def __eq__(self, __o: object) -> bool:
+        """Couple value equality"""
+        if not isinstance(__o, CoupleValue):
+            return False
+
+        return self.__criterion_name == __o.criterion_name and self.__value == __o.value

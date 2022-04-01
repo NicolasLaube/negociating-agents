@@ -34,6 +34,21 @@ class Argument:
         """Item"""
         return self.__item
 
+    @property
+    def decision(self) -> bool:
+        """To get the decision"""
+        return self.__decision
+
+    @property
+    def premises_comparison(self) -> List[Comparison]:
+        """To get the premises comparions"""
+        return self.__comparison_list
+
+    @property
+    def premises_couple_values(self) -> List[CoupleValue]:
+        """To get the premises couple values"""
+        return self.__couple_values_list
+
     def add_premiss_comparison(self, comparison):
         """Adds a premiss comparison in the comparison list."""
         self.__comparison_list.append(comparison)
@@ -54,15 +69,3 @@ class Argument:
             )
             + ", ".join(map(str, self.__comparison_list))
         )
-
-    def get_decision(self) -> bool:
-        """To get the decision"""
-        return self.__decision
-
-    def get_premises_comparison(self) -> List[Comparison]:
-        """To get the premises comparions"""
-        return self.__comparison_list
-
-    def get_premises_couple_values(self) -> List[CoupleValue]:
-        """To get the premises couple values"""
-        return self.__couple_values_list
