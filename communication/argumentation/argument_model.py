@@ -9,7 +9,6 @@ from communication.argumentation.preferences_generator import load_preferences
 from communication.message.message_service import MessageService
 from communication.preferences.criterion_name import CriterionName
 from communication.preferences.item import Item
-from communication.preferences.preferences import Preferences
 
 
 class ArgumentModel(Model):
@@ -25,7 +24,7 @@ class ArgumentModel(Model):
         self.criteria = criteria
 
         for i in range(1, number_agents + 1):
-            preferences = load_preferences(f"data/preferences/cars/p{i}.csv")
+            preferences = load_preferences(f"data/preferences/presidential/p{i}.csv")
             agent = ArgumentAgent(i, self, f"Agent{i}", self.items, preferences)
             print(agent)
 

@@ -3,6 +3,7 @@ from mesa import Agent
 
 from communication.mailbox.mailbox import Mailbox
 from communication.message.message import Message
+from communication.message.message_performative import MessagePerformative
 from communication.message.message_service import MessageService
 
 
@@ -44,6 +45,8 @@ class CommunicatingAgent(Agent):
         performative = message.performative
 
         print(f"Agent{self.unique_id} - {performative}({message})")
+        if performative == MessagePerformative.NOT_AGREE:
+            print("\n")
 
         self.__messages_service.send_message(message)
 

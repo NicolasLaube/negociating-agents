@@ -41,6 +41,7 @@ class ArgumentAgent(CommunicatingAgent):
         ---------------------------------------------
         My name is Agent {self.name}
         My favorite item is {self.items[0]} with score {self.items[0].get_score(self.__preferences)}
+        My preferences list is {" > ".join([str(item) for item in self.items])}
         """
 
     @property
@@ -88,14 +89,16 @@ class ArgumentAgent(CommunicatingAgent):
     ):
         """Attack argument"""
 
-        def add_couple_value_to_arg(arg: Optional[Argument], criterion_name: str):
-            """Add couple value to argument"""
+        def add_couple_value_to_arg(
+            arg: Optional[Argument], bad_criterion: CriterionName
+        ):
+            """Arguments for found other more important criterion"""
             if arg is None:
                 arg = Argument(not is_chosen, item)
 
             arg.add_premiss_couple_values(
                 CoupleValue(
-                    criterion_name, self.__preferences.get_value(item, criterion_name)
+                    bad_criterion, self.__preferences.get_value(item, bad_criterion)
                 )
             )
 
@@ -130,13 +133,14 @@ class ArgumentAgent(CommunicatingAgent):
 
             if is_chosen:
                 # Another more important criterion is bad
-                bad_criterion = self.other_more_important_criterion_is_bad(
-                    premise, item
+                counter_argument = self.other_more_important_criterion_is_bad(
+                    premise, item, is_chosen
                 )
-                if bad_criterion is not None:
-                    counter_argument = add_couple_value_to_arg(
-                        counter_argument, bad_criterion
-                    )
+                # if bad_criterion is not None:
+                #     counter_argument = add_couple_value_to_arg(
+                #         counter_argument, bad_criterion
+                #     )
+                #     print(counter_argument)
 
                 # For me, the evaluated criterion is bad
                 if counter_argument is not None and self.criterion_is_bad(
@@ -481,7 +485,7 @@ class ArgumentAgent(CommunicatingAgent):
         return False
 
     def other_more_important_criterion_is_bad(
-        self, premise: CoupleValue, item: Item
+        self, premise: CoupleValue, item: Item, is_chosen: bool
     ) -> Optional[CriterionName]:
         """Check if there is another more important criterion"""
         for criterion in self.__preferences.get_criterion_name_list():
@@ -490,7 +494,20 @@ class ArgumentAgent(CommunicatingAgent):
                 and self.__preferences.get_value(item, criterion).value
                 < Value.AVERAGE.value
             ):
-                return criterion
+                arg = Argument(not is_chosen, item)
+
+                arg.add_premiss_couple_values(
+                    CoupleValue(
+                        criterion, self.__preferences.get_value(item, criterion)
+                    )
+                )
+
+                arg.add_premiss_comparison(
+                    Comparison(criterion, premise.criterion_name)
+                )
+
+                if not self.__argument_was_used(arg):
+                    return arg
 
         return None
 
