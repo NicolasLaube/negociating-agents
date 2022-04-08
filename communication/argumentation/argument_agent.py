@@ -4,6 +4,7 @@ from copy import deepcopy
 from functools import reduce
 from typing import Dict, List, Optional
 
+from communication import config
 from communication.agent.communicating_agent import CommunicatingAgent
 from communication.argumentation.states import NegotationState
 from communication.arguments.argument import Argument
@@ -29,12 +30,10 @@ class ArgumentAgent(CommunicatingAgent):
         )
         self.proposed_items = []
         self.negotation_state = NegotationState.REST
-        # self.current_item = self.items[0]
         self.current_item: Optional[str] = None
         self.convinced_agents: Dict[str, bool] = {}
-        self.other_agent_views = {}
         self.arguments_used = []
-        # self.item_was_proposed = False
+        self.percentage = config.INITIAL_PERCENTAGE
 
     def __str__(self) -> str:
         return f"""
@@ -71,12 +70,14 @@ class ArgumentAgent(CommunicatingAgent):
 
             # Fourth case: the other agent sends an argue why message
             elif new_message.performative == MessagePerformative.ARGUE:
-                self.__add_view_to_history(new_message)
                 self.__argue_performative_callback(new_message)
 
             # Fifth case: the other agent sends a commit message
             elif new_message.performative == MessagePerformative.COMMIT:
                 self.__commit_performative_callback(new_message)
+
+            elif new_message.performative == MessagePerformative.NOT_AGREE:
+                self.__loose_constraints()
 
     def attack_argument(
         self,
@@ -87,15 +88,14 @@ class ArgumentAgent(CommunicatingAgent):
     ):
         """Attack argument"""
 
-        def argue_criterion_is_bad(arg: Optional[Argument]):
-            """Argue criterion is bad"""
+        def add_couple_value_to_arg(arg: Optional[Argument], criterion_name: str):
+            """Add couple value to argument"""
             if arg is None:
                 arg = Argument(not is_chosen, item)
 
             arg.add_premiss_couple_values(
                 CoupleValue(
-                    premise.criterion_name,
-                    self.__preferences.get_value(item, premise.criterion_name),
+                    criterion_name, self.__preferences.get_value(item, criterion_name)
                 )
             )
 
@@ -103,12 +103,7 @@ class ArgumentAgent(CommunicatingAgent):
                 return arg
             return None
 
-        def argue_found_better_item_for_criterion(arg: Optional[Argument]):
-            """Arguments for found better item for a criterion"""
-            print("Not implemented")
-            return arg
-
-        def argue_found_other_more_important_criterion_is_bad(
+        def add_coupe_value_and_comparison_to_arg(
             arg: Optional[Argument], bad_criterion: CriterionName
         ):
             """Arguments for found other more important criterion"""
@@ -139,26 +134,24 @@ class ArgumentAgent(CommunicatingAgent):
                     premise, item
                 )
                 if bad_criterion is not None:
-                    counter_argument = (
-                        argue_found_other_more_important_criterion_is_bad(
-                            counter_argument, bad_criterion
-                        )
+                    counter_argument = add_couple_value_to_arg(
+                        counter_argument, bad_criterion
                     )
 
                 # For me, the evaluated criterion is bad
                 if counter_argument is not None and self.criterion_is_bad(
                     premise, item
                 ):
-                    counter_argument = argue_criterion_is_bad(counter_argument)
+                    counter_argument = add_couple_value_to_arg(
+                        counter_argument, premise.criterion_name
+                    )
 
                 # I prefer another item which is better for this criterion
                 if (
                     counter_argument is not None
                     and self.found_better_item_for_criterion(premise, item)
                 ):
-                    counter_argument = argue_found_better_item_for_criterion(
-                        counter_argument
-                    )
+                    counter_argument = add_couple_value_to_arg(counter_argument)
 
                 if counter_argument is not None:
                     return counter_argument
@@ -166,13 +159,13 @@ class ArgumentAgent(CommunicatingAgent):
                 return None
 
             else:
-                other_item_better_on_crietrion = self.other_item_better_on_criterion(
+                other_item_better_on_crietrion = self.other_criterion_is_better(
                     premise=premise, item=item
                 )
 
                 if other_item_better_on_crietrion is not None:
 
-                    return argue_found_other_more_important_criterion_is_bad(
+                    return add_coupe_value_and_comparison_to_arg(
                         counter_argument, other_item_better_on_crietrion
                     )
 
@@ -183,26 +176,22 @@ class ArgumentAgent(CommunicatingAgent):
         for item in self.items:
             if (
                 item.name not in self.proposed_items
-            ):  # and self.preferences.is_item_among_top_10_percent():
+                and self.preferences.is_item_among_top_percent(
+                    item, self.items, self.percentage
+                )
+            ):
                 self.proposed_items.append(item.name)
                 return item
 
-    def __add_view_to_history(self, new_message: Message) -> None:
-        """Add view to history"""
-        if new_message.sender not in self.other_agent_views:
-            self.other_agent_views[new_message.sender] = deepcopy(self.preferences)
-        if isinstance(new_message.content, Argument):
-            argument = new_message.content
-            preferences = self.other_agent_views[new_message.sender]
-            for comparison in argument.premises_comparison:
-                preferences.set_criterion_pair(
-                    comparison.worst_criterion_name, comparison.best_criterion_name
-                )
-
-            for couple_value in argument.premises_couple_values:
-                preferences.set_criterion_value(
-                    argument.item, couple_value.criterion_name, couple_value.value
-                )
+    def __loose_constraints(self):
+        """Loose teh constraints"""
+        self.proposed_items = []
+        self.negotation_state = NegotationState.REST
+        self.percentage += config.INCREASE_PERCENTAGE
+        self.current_item: Optional[str] = None
+        self.convinced_agents: Dict[str, bool] = {}
+        self.arguments_used = []
+        # percentage of items that are ok is increased
 
     def __propose_new_item(self) -> None:
         """Propose new item"""
@@ -282,8 +271,8 @@ class ArgumentAgent(CommunicatingAgent):
 
             if isinstance(
                 message.content, Item
-            ) and self.preferences.is_item_among_top_10_percent(
-                message.content, self.items
+            ) and self.preferences.is_item_among_top_percent(
+                message.content, self.items, self.percentage
             ):
                 self.current_item = message.content
                 self.__send_accept_message(message.sender)
@@ -361,18 +350,32 @@ class ArgumentAgent(CommunicatingAgent):
         )
         self.negotation_state = NegotationState.WAITING_ANSWER_ACCEPT
 
+    def __send_not_agree(self, dest: str):
+        """Sends an not agree message"""
+        self.__loose_constraints()
+        self.send_message(Message(self.name, dest, MessagePerformative.NOT_AGREE, ""))
+
     def __send_attack_message(self, message: Message):
         """Send attack message"""
         argument = self.attack_argument(*self.argument_parsing(message.content))
         if argument is None:
             # no attack message was found, propose another item
-            if message.content.decision:
+            # loosen constraint is 2x percentage
+            loosen_percentage = min(2 * self.percentage, 100)
+
+            if self.preferences.is_item_among_top_percent(
+                message.content, self.items, loosen_percentage
+            ):
+                # self.__send_not_agree(message.sender)
                 self.__send_accept_message(message.sender)
             else:
                 self.current_item = self.get_best_item_to_propose()
-                self.__propose_new_item()
+                if self.current_item is not None:
+                    self.__propose_new_item()
+                else:
+                    self.__send_not_agree(message.sender)
+
         else:
-            self.arguments_used.append(argument)
             if argument.item.name == self.current_item.name:
                 self.arguments_used.append(argument)
                 self.send_message(
@@ -392,11 +395,12 @@ class ArgumentAgent(CommunicatingAgent):
         if len(self.arguments_used) == 0:
             return False
         for argument_used in self.arguments_used:
-            if argument_used.item.name == argument.item.name:
-                return True
-            if argument_used.premises_couple_values == argument.premises_couple_values:
-                return True
-            if argument_used.premises_comparison == argument.premises_comparison:
+            if (
+                argument_used.item.name == argument.item.name
+                and argument_used.premises_couple_values
+                == argument.premises_couple_values
+                and argument_used.premises_comparison == argument.premises_comparison
+            ):
                 return True
         return False
 
@@ -490,12 +494,15 @@ class ArgumentAgent(CommunicatingAgent):
 
         return None
 
-    def other_item_better_on_criterion(self, premise: CoupleValue, item: Item):
-        """Other crietrion"""
+    def other_criterion_is_better(self, premise: CoupleValue, item: Item):
+        """Other criterion"""
         for criterion in self.__preferences.get_criterion_name_list():
 
+            if criterion.name == premise.criterion_name:
+                break
+
             if self.__preferences.get_value(item, criterion).value > min(
-                Value.GOOD.value,
+                Value.AVERAGE.value,
                 min(
                     [
                         self.__preferences.get_value(it, criterion).value

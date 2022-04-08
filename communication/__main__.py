@@ -7,9 +7,10 @@ print("Testing two agents communication")
 
 
 e_car = Item("E", "The nice electric car")
-diesel_car = Item("ICED", "The greate diesel car")
+diesel_car = Item("ICED", "The great diesel car")
+hybrid_car = Item("HYBRID", "The super hybrid car")
 
-ITEMS = [e_car, diesel_car]
+ITEMS = [e_car, diesel_car, hybrid_car]
 CRITERIA = [
     CriterionName.CONSUMPTION,
     CriterionName.DURABILITY,

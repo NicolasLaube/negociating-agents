@@ -81,18 +81,23 @@ class Preferences:
             return random.choice([sorted_item_list[0], sorted_item_list[1]])
         return sorted_item_list[0]
 
-    def is_item_among_top_10_percent(self, item: Item, item_list: List[Item]) -> bool:
+    def is_item_among_top_percent(
+        self, item: Item, item_list: List[Item], percentage: int = 20
+    ) -> bool:
         """
         Return whether a given item is among the top 10 percent of the preferred items.
 
         :return: a boolean, True means that the item is among the favourite ones
         """
+        proportion = percentage / 100
         sorted_item_list = sorted(
             item_list,
             key=lambda item: item.get_score(self),  # type: ignore
             reverse=True,
         )
-        return item in sorted_item_list[: max(1, int(len(sorted_item_list) * 0.1))]
+        return (
+            item in sorted_item_list[: max(1, int(len(sorted_item_list) * proportion))]
+        )
 
     def set_criterion_pair(
         self, less_preferred: CriterionName, more_preferred: CriterionName
