@@ -9,3 +9,6 @@ test:
 		pytest
 
 tests: test
+
+run:
+	python -m communication
