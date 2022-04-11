@@ -1,8 +1,6 @@
-from communication.mailbox.Mailbox import Mailbox
-from communication.message.Message import Message
+"""Main script for the communication."""
 from communication import Item
-from communication.message.MessagePerformative import MessagePerformative
-from communication.preferences.CriterionName import CriterionName
+from communication.preferences.criterion_name import CriterionName
 from communication.pw_argumentation import ArgumentModel
 
 print("Testing two agents communication")
@@ -25,5 +23,5 @@ argument_model = ArgumentModel(2, items=ITEMS, criteria=CRITERIA)
 NUM_STEPS = 20
 
 
-for i in range(NUM_STEPS):
+for _ in range(NUM_STEPS):
     argument_model.step()

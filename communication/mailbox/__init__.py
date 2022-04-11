@@ -1,1 +1,1 @@
-from communication.mailbox.Mailbox import *
+from communication.mailbox.mailbox import *

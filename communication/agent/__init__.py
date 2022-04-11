@@ -1,1 +1,1 @@
-from communication.agent.CommunicatingAgent import *
+from communication.agent.communicating_agent import *
