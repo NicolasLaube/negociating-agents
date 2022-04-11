@@ -24,3 +24,7 @@ class CriterionValue:
     def get_value(self):
         """Returns the value."""
         return self.__value
+
+    def set_value(self, value):
+        """Sets the value."""
+        self.__value = value

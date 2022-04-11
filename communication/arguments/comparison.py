@@ -30,3 +30,12 @@ class Comparison:
         return (
             f"{self.__worst_criterion_name.name} <= {self.__best_criterion_name.name}"
         )
+
+    def __eq__(self, __o: object) -> bool:
+        """Comparison equality"""
+        if not isinstance(__o, Comparison):
+            return False
+        return (
+            self.__best_criterion_name == __o.best_criterion_name
+            and self.__worst_criterion_name == __o.worst_criterion_name
+        )

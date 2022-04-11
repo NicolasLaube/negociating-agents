@@ -1,13 +1,13 @@
 """Main script for the communication."""
 from communication import Item
+from communication.argumentation.argument_model import ArgumentModel
 from communication.preferences.criterion_name import CriterionName
-from communication.pw_argumentation import ArgumentModel
 
 print("Testing two agents communication")
 
 
-e_car = Item("ElectricCar", "The nice electric car")
-diesel_car = Item("DieselCar", "The greate diesel car")
+e_car = Item("E", "The nice electric car")
+diesel_car = Item("ICED", "The greate diesel car")
 
 ITEMS = [e_car, diesel_car]
 CRITERIA = [

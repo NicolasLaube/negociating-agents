@@ -1,4 +1,9 @@
 """Message class."""
+from typing import Union
+
+from communication.arguments.argument import Argument
+from communication.message.message_performative import MessagePerformative
+from communication.preferences.item import Item
 
 
 class Message:
@@ -14,7 +19,13 @@ class Message:
         content: the content of the message
     """
 
-    def __init__(self, from_agent, to_agent, message_performative, content):
+    def __init__(
+        self,
+        from_agent: str,
+        to_agent: str,
+        message_performative: MessagePerformative,
+        content: Union[Argument, Item],
+    ):
         """Create a new message."""
         self.__from_agent = from_agent
         self.__to_agent = to_agent
@@ -34,18 +45,22 @@ class Message:
             + str(self.__content)
         )
 
-    def get_exp(self):
+    @property
+    def sender(self) -> str:
         """Return the sender of the message."""
         return self.__from_agent
 
-    def get_dest(self):
+    @property
+    def recipient(self):
         """Return the receiver of the message."""
         return self.__to_agent
 
-    def get_performative(self):
+    @property
+    def performative(self):
         """Return the performative of the message."""
         return self.__message_performative
 
-    def get_content(self):
+    @property
+    def content(self) -> Union[Argument, Item]:
         """Return the content of the message."""
         return self.__content

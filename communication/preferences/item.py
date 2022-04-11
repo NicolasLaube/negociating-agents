@@ -19,7 +19,8 @@ class Item:
         """Returns Item as a String."""
         return self.__name + " (" + self.__description + ")"
 
-    def get_name(self):
+    @property
+    def name(self):
         """Returns the name of the item."""
         return self.__name
 
