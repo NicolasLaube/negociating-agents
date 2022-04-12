@@ -12,7 +12,7 @@ from communication.preferences.criterion_name import CriterionName
 from communication.preferences.item import Item
 
 
-class ArgumentModel(Model):
+class ArgumentModel(Model):  # pylint: disable=too-many-instance-attributes
     """ArgumentModel which inherit from Model ."""
 
     def __init__(
@@ -28,17 +28,28 @@ class ArgumentModel(Model):
         self.items = items
         self.criteria = criteria
         self.preferences_folder = preferences_folder
-
-        for i in range(1, number_agents + 1):
-            preferences = load_preferences(
-                os.path.join(self.preferences_folder, f"p{i}.csv")
-            )
-            agent = ArgumentAgent(i, self, f"Agent{i}", self.items, preferences)
-            print(agent)
-
-            self.schedule.add(agent)
+        self.num_agents = number_agents
+        self.all_agents: List[ArgumentAgent] = []
 
         self.running = True
+
+    def setup_discussion_between(self, agent_1: int, agent_2: int) -> None:
+        """Setup discussion between two agents"""
+        for agent in self.all_agents:
+            self.schedule.remove(agent)
+        self.all_agents = []
+
+        for agent_id in [agent_1, agent_2]:
+            preferences = load_preferences(
+                os.path.join(self.preferences_folder, f"p{agent_id}.csv")
+            )
+            agent = ArgumentAgent(
+                agent_id, self, f"Agent{agent_id}", self.items, preferences
+            )
+
+            self.schedule.add(agent)
+            self.all_agents.append(agent)
+            print(agent)
 
     def step(self):
         """Step"""
