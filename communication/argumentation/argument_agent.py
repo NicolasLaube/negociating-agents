@@ -78,6 +78,10 @@ class ArgumentAgent(CommunicatingAgent):
 
             elif new_message.performative == MessagePerformative.NOT_AGREE:
                 self.__loose_constraints()
+                if self.current_item is None:
+                    self.current_item = self.__get_best_item_to_propose()
+
+                self.__propose_new_item()
 
     def __get_attack_argument(
         self,
@@ -188,8 +192,8 @@ class ArgumentAgent(CommunicatingAgent):
 
         return None
 
-    def get_best_item_to_propose(self) -> Optional[Item]:
-        """Get best item to propose"""
+    def __get_best_item_to_propose(self) -> Optional[Item]:
+        """Get best item to propose that wasn't already proposed"""
         for item in self.items:
             if (
                 item.name not in self.proposed_items
@@ -203,8 +207,9 @@ class ArgumentAgent(CommunicatingAgent):
 
     def __loose_constraints(self) -> None:
         """Loose teh constraints"""
-        self.proposed_items = []
-        self.negotation_state = NegotationState.REST
+        # self.proposed_items = []
+
+        self.negotation_state = NegotationState.ARGUING
         self.percentage += config.INCREASE_PERCENTAGE
         self.current_item = None
         self.convinced_agents = {}
@@ -227,7 +232,7 @@ class ArgumentAgent(CommunicatingAgent):
 
         # Agent with min id starts the conversation
         if min_id == self.unique_id:
-            self.current_item = self.get_best_item_to_propose()
+            self.current_item = self.__get_best_item_to_propose()
             self.__propose_new_item()
 
     def __commit_performative_callback(self, message: Message) -> None:
@@ -359,8 +364,10 @@ class ArgumentAgent(CommunicatingAgent):
 
     def __send_propose_message(self, dest: str) -> None:
         """Sends a propose message"""
+
         if self.current_item is None:
-            raise ValueError("Current item is None")
+            self.__send_not_agree(dest)
+            return
 
         self.send_message(
             Message(
@@ -413,22 +420,8 @@ class ArgumentAgent(CommunicatingAgent):
 
         if argument is None:
             # no attack message was found, propose another item
-            # loosen constraint is 2x percentage
-            # loosen_percentage = min(2 * self.percentage, 100)
+            self.current_item = self.__get_best_item_to_propose()
 
-            # !!!!!!!!!!!!!! VERIFY this part of code !!!!!!!!!!!!!!!!!!!!!!
-            # message content is arg
-
-            # if self.preferences.is_item_among_top_percent(
-            #     message.content, self.items, loosen_percentage
-            # ):
-            #     print("isdufisdfisfhsiufhsifhsidfhsdifhsdfihsdfihs", message.content)
-
-            #     # self.__send_not_agree(message.sender)
-            #     self.__send_accept_message(message.sender)
-            # else:
-
-            self.current_item = self.get_best_item_to_propose()
             if self.current_item is not None:
                 self.__propose_new_item()
             else:

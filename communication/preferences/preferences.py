@@ -113,6 +113,7 @@ class Preferences:
             key=lambda item: item.get_score(self),  # type: ignore
             reverse=True,
         )
+
         return (
             item in sorted_item_list[: max(1, int(len(sorted_item_list) * proportion))]
         )

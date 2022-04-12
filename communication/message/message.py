@@ -35,13 +35,12 @@ class Message:
     def __str__(self):
         """Return Message as a String."""
         return (
-            "From "
-            + str(self.__from_agent)
-            + " to "
+            str(self.__from_agent)
+            + " -> "
             + str(self.__to_agent)
-            + " ("
+            + " = "
             + str(self.__message_performative)
-            + ") "
+            + ": "
             + str(self.__content)
         )
 
