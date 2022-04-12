@@ -1,6 +1,8 @@
 """Criterion Name"""
-from enum import Enum
+from __future__ import annotations
 
+from enum import Enum
+from typing import List
 
 # class CriterionNameCars(Enum):
 #     """CriterionName enum class.
@@ -36,8 +38,12 @@ class CriterionName(Enum):
     ENVIRONMENT_IMPACT = "environment_impact"
     NOISE = "noise"
 
+    def __str__(self) -> str:
+        return self.value
+
     @staticmethod
-    def list_presidential():
+    def list_presidential() -> List[CriterionName]:
+        """Return the list of presidential CriterionName."""
         return [
             c
             for c in CriterionName
@@ -53,7 +59,8 @@ class CriterionName(Enum):
         ]
 
     @staticmethod
-    def list_cars():
+    def list_cars() -> List[CriterionName]:
+        """Return the list of the cars CriterionName"""
         return [
             c
             for c in CriterionName

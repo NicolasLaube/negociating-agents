@@ -1,16 +1,40 @@
 """Main script for the communication."""
+from argparse import ArgumentParser
+
+from communication import config
 from communication.argumentation.argument_model import ArgumentModel
 from communication.preferences.criterion_name import CriterionName
-from communication import config
 
-print("Testing two agents communication")
+if __name__ == "__main__":
+    print("Testing two agents communication")
 
-argument_model = ArgumentModel(
-    2, items=config.PRESIDENTIAL_ITEMS, criteria=CriterionName.list_presidential()
-)
+    argparser = ArgumentParser()
+    argparser.add_argument(
+        "--mode",
+        type=str,
+        default="presidential",
+        help="Argumentation mode (presidential or cars)",
+    )
 
-NUM_STEPS = 100
+    if argparser.parse_args().mode == "presidential":
 
+        argument_model = ArgumentModel(
+            2,
+            items=config.PRESIDENTIAL_ITEMS,
+            criteria=CriterionName.list_presidential(),
+            preferences_folder=config.PRESIDENTIAL_PREFERENCES_FOLDER,
+        )
 
-for _ in range(NUM_STEPS):
-    argument_model.step()
+    elif argparser.parse_args().mode == "cars":
+
+        argument_model = ArgumentModel(
+            2,
+            items=config.CAR_ITEMS,
+            criteria=CriterionName.list_cars(),
+            preferences_folder=config.CARS_PREFERENCES_FOLDER,
+        )
+
+    NUM_STEPS = 100
+
+    for _ in range(NUM_STEPS):
+        argument_model.step()

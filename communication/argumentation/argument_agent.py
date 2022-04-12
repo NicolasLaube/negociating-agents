@@ -1,6 +1,5 @@
 """Argument agent"""
-# pylint: disable=W0631
-from copy import deepcopy
+# pylint: disable=W0631,W0612,R0902
 from functools import reduce
 from typing import Dict, List, Optional
 
@@ -28,11 +27,11 @@ class ArgumentAgent(CommunicatingAgent):
             key=lambda item: item.get_score(self.__preferences),  # type: ignore
             reverse=True,
         )
-        self.proposed_items = []
+        self.proposed_items: List[Item] = []
         self.negotation_state = NegotationState.REST
-        self.current_item: Optional[str] = None
+        self.current_item: Optional[Item] = None
         self.convinced_agents: Dict[str, bool] = {}
-        self.arguments_used = []
+        self.arguments_used: List[Argument] = []
         self.percentage = config.INITIAL_PERCENTAGE
 
     def __str__(self) -> str:
@@ -49,7 +48,7 @@ class ArgumentAgent(CommunicatingAgent):
         """Get preferences"""
         return self.__preferences
 
-    def step(self):
+    def step(self) -> None:
         """Step function"""
 
         # First step: we must begin the conversation
@@ -80,25 +79,24 @@ class ArgumentAgent(CommunicatingAgent):
             elif new_message.performative == MessagePerformative.NOT_AGREE:
                 self.__loose_constraints()
 
-    def attack_argument(
+    def __get_attack_argument(
         self,
-        premises_comparison: List[Comparison],
         premises_couple_value: List[CoupleValue],
         item: Item,
         is_chosen: bool,
-    ):
+    ) -> Optional[Argument]:
         """Attack argument"""
 
         def add_couple_value_to_arg(
-            arg: Optional[Argument], bad_criterion: CriterionName
-        ):
+            arg: Optional[Argument], criterion_name: CriterionName
+        ) -> Optional[Argument]:
             """Arguments for found other more important criterion"""
             if arg is None:
                 arg = Argument(not is_chosen, item)
 
             arg.add_premiss_couple_values(
                 CoupleValue(
-                    bad_criterion, self.__preferences.get_value(item, bad_criterion)
+                    criterion_name, self.__preferences.get_value(item, criterion_name)
                 )
             )
 
@@ -107,20 +105,39 @@ class ArgumentAgent(CommunicatingAgent):
             return None
 
         def add_coupe_value_and_comparison_to_arg(
-            arg: Optional[Argument], bad_criterion: CriterionName
-        ):
+            arg: Optional[Argument], criterion_name: CriterionName
+        ) -> Optional[Argument]:
             """Arguments for found other more important criterion"""
             if arg is None:
                 arg = Argument(not is_chosen, item)
 
             arg.add_premiss_couple_values(
                 CoupleValue(
-                    bad_criterion, self.__preferences.get_value(item, bad_criterion)
+                    criterion_name, self.__preferences.get_value(item, criterion_name)
                 )
             )
 
             arg.add_premiss_comparison(
-                Comparison(bad_criterion, premise.criterion_name)
+                Comparison(criterion_name, premise.criterion_name)
+            )
+
+            if not self.__argument_was_used(arg):
+                return arg
+            return None
+
+        def arg_other_item(
+            arg: Optional[Argument],
+            item: Item,
+        ) -> Optional[Argument]:
+            """Arguments for found other item"""
+            if arg is None:
+                arg = Argument(not is_chosen, item)
+
+            arg.add_premiss_couple_values(
+                CoupleValue(
+                    premise.criterion_name,
+                    self.__preferences.get_value(item, premise.criterion_name),
+                )
             )
 
             if not self.__argument_was_used(arg):
@@ -143,37 +160,33 @@ class ArgumentAgent(CommunicatingAgent):
                 #     print(counter_argument)
 
                 # For me, the evaluated criterion is bad
-                if counter_argument is not None and self.criterion_is_bad(
-                    premise, item
-                ):
+                if counter_argument is None and self.criterion_is_bad(premise, item):
                     counter_argument = add_couple_value_to_arg(
                         counter_argument, premise.criterion_name
                     )
 
                 # I prefer another item which is better for this criterion
-                if (
-                    counter_argument is not None
-                    and self.found_better_item_for_criterion(premise, item)
-                ):
-                    counter_argument = add_couple_value_to_arg(counter_argument)
+                better_item = self.get_better_item_for_criterion(premise, item)
+                if counter_argument is None and better_item is not None:
+                    counter_argument = arg_other_item(counter_argument, better_item)
 
                 if counter_argument is not None:
                     return counter_argument
 
                 return None
 
-            else:
-                other_item_better_on_crietrion = self.other_criterion_is_better(
-                    premise=premise, item=item
+            other_item_better_on_crietrion = self.other_criterion_is_better(
+                premise=premise, item=item
+            )
+
+            if other_item_better_on_crietrion is not None:
+
+                return add_coupe_value_and_comparison_to_arg(
+                    counter_argument, other_item_better_on_crietrion
                 )
+            # VERIFY the loop is correct !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-                if other_item_better_on_crietrion is not None:
-
-                    return add_coupe_value_and_comparison_to_arg(
-                        counter_argument, other_item_better_on_crietrion
-                    )
-
-                return None
+        return None
 
     def get_best_item_to_propose(self) -> Optional[Item]:
         """Get best item to propose"""
@@ -186,14 +199,15 @@ class ArgumentAgent(CommunicatingAgent):
             ):
                 self.proposed_items.append(item.name)
                 return item
+        return None
 
-    def __loose_constraints(self):
+    def __loose_constraints(self) -> None:
         """Loose teh constraints"""
         self.proposed_items = []
         self.negotation_state = NegotationState.REST
         self.percentage += config.INCREASE_PERCENTAGE
-        self.current_item: Optional[str] = None
-        self.convinced_agents: Dict[str, bool] = {}
+        self.current_item = None
+        self.convinced_agents = {}
         self.arguments_used = []
         # percentage of items that are ok is increased
 
@@ -205,7 +219,7 @@ class ArgumentAgent(CommunicatingAgent):
                 self.__send_propose_message(agent.name)
         self.negotation_state = NegotationState.ARGUING
 
-    def __start_conversation(self):
+    def __start_conversation(self) -> None:
         """Start conversation"""
         min_id = self.unique_id
         for agent in self.model.schedule.agents:
@@ -218,9 +232,12 @@ class ArgumentAgent(CommunicatingAgent):
 
     def __commit_performative_callback(self, message: Message) -> None:
         """Commit performative callback: the other agent commits an item."""
+        if self.current_item is None:
+            raise ValueError("Current item is None")
 
         if (
-            self.current_item.name == message.content.name
+            isinstance(message.content, Item)
+            and self.current_item.name == message.content.name
             and self.current_item.name in [item.name for item in self.items]
         ):
             if self.negotation_state == NegotationState.WAITING_ANSWER_ACCEPT:
@@ -239,10 +256,12 @@ class ArgumentAgent(CommunicatingAgent):
                 if reduce(lambda x, y: x and y, self.convinced_agents.values()):
                     self.negotation_state = NegotationState.FINISHED
         else:
-            print("Commit message is not valid")
+            raise ValueError("Commit message is not valid")
 
     def __accept_performative_callback(self, message: Message) -> None:
         """Accept performative callback: the other agent accepts an item."""
+        if self.current_item is None:
+            raise ValueError("Current item is None")
 
         if (
             isinstance(message.content, Item)
@@ -265,7 +284,7 @@ class ArgumentAgent(CommunicatingAgent):
                     agent: False for agent in self.convinced_agents.keys()
                 }
         else:
-            print("Accept message is not valid")
+            raise ValueError("Accept message is not valid")
 
     def __propose_performative_callback(self, message: Message) -> None:
         """Propose performative callback: the other agent proposes an item."""
@@ -293,45 +312,56 @@ class ArgumentAgent(CommunicatingAgent):
                 self.current_item = message.content
                 self.negotation_state = NegotationState.ARGUING
         else:
-            print("Propose message is not valid")
+            raise ValueError("Propose message is not valid")
 
     def __ask_why_performative_callback(self, message: Message) -> None:
         """Ask why performative callback: The agent other agent sent an ask why message"""
-        assert self.negotation_state is not None
-        assert isinstance(message.content, Item)
+        # assert self.negotation_state is not None
+
+        if self.current_item is None:
+            raise ValueError("Current item is None")
 
         if (
-            self.negotation_state == NegotationState.ARGUING
+            isinstance(message.content, Item)
+            and self.negotation_state == NegotationState.ARGUING
             and self.current_item.name == message.content.name
         ):
             argument = self.support_proposal(self.current_item)
-            self.arguments_used.append(argument)
-            self.send_message(
-                Message(
-                    self.name,
-                    message.sender,
-                    MessagePerformative.ARGUE,
-                    argument,
+
+            if argument is not None:
+
+                self.arguments_used.append(argument)
+                self.send_message(
+                    Message(
+                        self.name,
+                        message.sender,
+                        MessagePerformative.ARGUE,
+                        argument,
+                    )
                 )
-            )
-        else:
-            print(self.negotation_state == NegotationState.ARGUING)
-            print(self.name, self.current_item, message.content.name)
-            print(self.current_item.name != message.content.name)
-            print("Ask why message is not valid")
+                return
+        raise ValueError("Ask why message is not valid")
 
     def __argue_performative_callback(self, message: Message) -> None:
         """Argue performative callback: The agent other agent sent an argue message"""
+        assert isinstance(
+            message.content, Argument
+        ), "Message content should be an Argument"
+
+        if self.current_item is None:
+            raise ValueError("Current item is None")
 
         if (
-            # isinstance(message.content, CriterionValue)
             self.negotation_state == NegotationState.ARGUING
             and self.current_item.name == message.content.item.name
         ):
             self.__send_attack_message(message)
 
-    def __send_propose_message(self, dest: str):
+    def __send_propose_message(self, dest: str) -> None:
         """Sends a propose message"""
+        if self.current_item is None:
+            raise ValueError("Current item is None")
+
         self.send_message(
             Message(
                 self.name,
@@ -342,8 +372,11 @@ class ArgumentAgent(CommunicatingAgent):
         )
         self.convinced_agents[dest] = False
 
-    def __send_accept_message(self, dest: str):
+    def __send_accept_message(self, dest: str) -> None:
         """Sends an accept messsage"""
+        if self.current_item is None:
+            raise ValueError("Current item is None")
+
         self.send_message(
             Message(
                 self.name,
@@ -354,32 +387,57 @@ class ArgumentAgent(CommunicatingAgent):
         )
         self.negotation_state = NegotationState.WAITING_ANSWER_ACCEPT
 
-    def __send_not_agree(self, dest: str):
+    def __send_not_agree(self, dest: str) -> None:
         """Sends an not agree message"""
         self.__loose_constraints()
-        self.send_message(Message(self.name, dest, MessagePerformative.NOT_AGREE, ""))
+        self.send_message(
+            Message(
+                self.name,
+                dest,
+                MessagePerformative.NOT_AGREE,
+                "We have to loose our constraints",
+            )
+        )
 
-    def __send_attack_message(self, message: Message):
+    def __send_attack_message(self, message: Message) -> None:
         """Send attack message"""
-        argument = self.attack_argument(*self.argument_parsing(message.content))
+        assert isinstance(
+            message.content, Argument
+        ), "Message content should be an Argument"
+
+        argument = self.__get_attack_argument(
+            message.content.premises_couple_values,
+            message.content.item,
+            message.content.decision,
+        )
+
         if argument is None:
             # no attack message was found, propose another item
             # loosen constraint is 2x percentage
-            loosen_percentage = min(2 * self.percentage, 100)
+            # loosen_percentage = min(2 * self.percentage, 100)
 
-            if self.preferences.is_item_among_top_percent(
-                message.content, self.items, loosen_percentage
-            ):
-                # self.__send_not_agree(message.sender)
-                self.__send_accept_message(message.sender)
+            # !!!!!!!!!!!!!! VERIFY this part of code !!!!!!!!!!!!!!!!!!!!!!
+            # message content is arg
+
+            # if self.preferences.is_item_among_top_percent(
+            #     message.content, self.items, loosen_percentage
+            # ):
+            #     print("isdufisdfisfhsiufhsifhsidfhsdifhsdfihsdfihs", message.content)
+
+            #     # self.__send_not_agree(message.sender)
+            #     self.__send_accept_message(message.sender)
+            # else:
+
+            self.current_item = self.get_best_item_to_propose()
+            if self.current_item is not None:
+                self.__propose_new_item()
             else:
-                self.current_item = self.get_best_item_to_propose()
-                if self.current_item is not None:
-                    self.__propose_new_item()
-                else:
-                    self.__send_not_agree(message.sender)
+                self.__send_not_agree(message.sender)
 
         else:
+            if self.current_item is None:
+                raise ValueError("Current item is None")
+
             if argument.item.name == self.current_item.name:
                 self.arguments_used.append(argument)
                 self.send_message(
@@ -391,7 +449,7 @@ class ArgumentAgent(CommunicatingAgent):
                     )
                 )
             else:
-                self.current_item = argument.get_item()
+                self.current_item = argument.item
                 self.__propose_new_item()
 
     def __argument_was_used(self, argument: Argument) -> bool:
@@ -408,7 +466,7 @@ class ArgumentAgent(CommunicatingAgent):
                 return True
         return False
 
-    def list_supporting_proposal(self, item: Item):
+    def list_supporting_proposal(self, item: Item) -> List[CoupleValue]:
         """Generate a list of premisses which can be used to support an item
         :param item: Item - name of the item
         :return: list of all premisses PRO an item (sorted by order of importance
@@ -424,7 +482,7 @@ class ArgumentAgent(CommunicatingAgent):
             reverse=True,
         )
 
-    def list_attacking_proposal(self, item: Item):
+    def list_attacking_proposal(self, item: Item) -> List[CoupleValue]:
         """List attacking proposal"""
         return sorted(
             [
@@ -437,7 +495,7 @@ class ArgumentAgent(CommunicatingAgent):
             reverse=True,
         )
 
-    def support_proposal(self, item: Item) -> Argument:
+    def support_proposal(self, item: Item) -> Optional[Argument]:
         """
         Used when the agent receives "ASK_WHY" after having proposed an item
         :param item: str
@@ -450,18 +508,7 @@ class ArgumentAgent(CommunicatingAgent):
             if not self.__argument_was_used(arg):
                 self.arguments_used.append(arg)
                 return arg
-
-    @staticmethod
-    def argument_parsing(
-        argument: Argument,
-    ):
-        """Parse an argument"""
-        return (
-            argument.premises_comparison,
-            argument.premises_couple_values,
-            argument.item,
-            argument.decision,
-        )
+        return None
 
     def criterion_is_bad(self, premise: CoupleValue, item: Item) -> bool:
         """Check if a premise is not important"""
@@ -473,7 +520,9 @@ class ArgumentAgent(CommunicatingAgent):
             )
         )
 
-    def found_better_item_for_criterion(self, premise: CoupleValue, item: Item) -> bool:
+    def get_better_item_for_criterion(
+        self, premise: CoupleValue, item: Item
+    ) -> Optional[Item]:
         """Found better item for a premise"""
         for item_ in self.items:
             if item_ != item:
@@ -481,12 +530,12 @@ class ArgumentAgent(CommunicatingAgent):
                     self.__preferences.get_value(item_, premise.criterion_name).value
                     > premise.value.value
                 ):
-                    return True
-        return False
+                    return item_
+        return None
 
     def other_more_important_criterion_is_bad(
         self, premise: CoupleValue, item: Item, is_chosen: bool
-    ) -> Optional[CriterionName]:
+    ) -> Optional[Argument]:
         """Check if there is another more important criterion"""
         for criterion in self.__preferences.get_criterion_name_list():
             if (
@@ -522,8 +571,9 @@ class ArgumentAgent(CommunicatingAgent):
                 Value.AVERAGE.value,
                 min(
                     [
-                        self.__preferences.get_value(it, criterion).value
-                        for it in self.items
+                        self.__preferences.get_value(item_, criterion).value
+                        for item_ in self.items
+                        if self.__preferences.get_value(item_, criterion) is not None
                     ]
                 ),
             ):
@@ -539,6 +589,3 @@ class ArgumentAgent(CommunicatingAgent):
                 item, criterion
             ).value,
         )
-
-    def argument_is_attackable(self) -> bool:
-        """Checks if an argument is attackable"""

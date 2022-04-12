@@ -36,4 +36,6 @@ class CoupleValue:
         if not isinstance(__o, CoupleValue):
             return False
 
-        return self.__criterion_name == __o.criterion_name and self.__value == __o.value
+        return bool(
+            self.__criterion_name == __o.criterion_name and self.__value == __o.value
+        )

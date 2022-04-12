@@ -10,5 +10,8 @@ test:
 
 tests: test
 
-run:
-	python -m communication
+cars:
+	python -m communication --mode=cars
+
+presidential:
+	python -m communication --mode=presidential

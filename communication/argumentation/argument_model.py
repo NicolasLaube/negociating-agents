@@ -1,4 +1,5 @@
 """Argument model"""
+import os
 from typing import List
 
 from mesa import Model
@@ -15,16 +16,23 @@ class ArgumentModel(Model):
     """ArgumentModel which inherit from Model ."""
 
     def __init__(
-        self, number_agents: int, items: List[Item], criteria: List[CriterionName]
+        self,
+        number_agents: int,
+        items: List[Item],
+        criteria: List[CriterionName],
+        preferences_folder: str,
     ):
         super().__init__()
         self.schedule = RandomActivation(self)
         self.__messages_service = MessageService(self.schedule)
         self.items = items
         self.criteria = criteria
+        self.preferences_folder = preferences_folder
 
         for i in range(1, number_agents + 1):
-            preferences = load_preferences(f"data/preferences/presidential/p{i}.csv")
+            preferences = load_preferences(
+                os.path.join(self.preferences_folder, f"p{i}.csv")
+            )
             agent = ArgumentAgent(i, self, f"Agent{i}", self.items, preferences)
             print(agent)
 

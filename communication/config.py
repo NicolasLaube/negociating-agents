@@ -1,3 +1,5 @@
+import os
+
 from communication.preferences.item import Item
 
 # PERCENTAGES OF PREFERENCES
@@ -17,3 +19,6 @@ PRESIDENTIAL_ITEMS = [
     Item("JASMIN", "Left"),
     Item("PECANS", "Right"),
 ]
+
+CARS_PREFERENCES_FOLDER = os.path.join("data", "preferences", "cars")
+PRESIDENTIAL_PREFERENCES_FOLDER = os.path.join("data", "preferences", "presidential")
