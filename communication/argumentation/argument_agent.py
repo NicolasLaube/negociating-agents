@@ -1,5 +1,5 @@
 """Argument agent"""
-# pylint: disable=W0631,W0612,R0902
+# pylint: disable=W0631,W0612,R0902, E0401
 from functools import reduce
 from typing import Dict, List, Optional
 
@@ -207,7 +207,7 @@ class ArgumentAgent(CommunicatingAgent):
 
     def __loose_constraints(self) -> None:
         """Loose teh constraints"""
-        # self.proposed_items = []
+        self.proposed_items = []
 
         self.negotation_state = NegotationState.ARGUING
         self.percentage += config.INCREASE_PERCENTAGE
