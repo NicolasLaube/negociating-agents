@@ -20,6 +20,14 @@ PRESIDENTIAL_ITEMS = [
     Item("PECANS", "Right"),
 ]
 
+PRESIDENTIAL_COLORS = {
+    "MELON": "red",
+    "JASMIN": "green",
+    "MANIOC": "purple",
+    "PECANS": "cornflowerblue",
+    "ZEBRA": "navy",
+}
+
 CARS_PREFERENCES_FOLDER = os.path.join("data", "preferences", "cars")
 PRESIDENTIAL_PREFERENCES_FOLDER = os.path.join("data", "preferences", "presidential")
 

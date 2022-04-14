@@ -1,11 +1,10 @@
 """Main script for the communication."""
 from argparse import ArgumentParser
-from itertools import combinations
 
 from communication import config
 from communication.argumentation.argument_model import ArgumentModel
-from communication.preferences.criterion_name import CriterionName
 from communication.commands.pairs_visualizer import visualize_pairs_negociations
+from communication.preferences.criterion_name import CriterionName
 
 if __name__ == "__main__":
     print("Testing two agents communication")

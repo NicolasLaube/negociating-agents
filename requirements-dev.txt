@@ -1,0 +1,5 @@
+mypy==0.910
+flake8==4.0.1
+pylint==2.11.1
+pytest==6.2.5
+black==21.10b0

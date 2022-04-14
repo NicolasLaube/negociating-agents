@@ -1,1 +1,5 @@
-mesa
+matplotlib==3.5.1
+Mesa==0.9.0
+networkx==2.6.3
+pandas==1.4.1
+seaborn==0.11.2
