@@ -1,7 +1,7 @@
 """Message service."""
 
 
-from typing import List, Any
+from typing import Any
 
 
 class MessageService:
@@ -37,7 +37,7 @@ class MessageService:
         self.__instant_delivery = instant_delivery
 
     @property
-    def messages_to_proceed(self) -> List[Any]:
+    def messages_to_proceed(self) -> Any:
         """Return the list of message to proceed."""
         return self.__messages_to_proceed
 
