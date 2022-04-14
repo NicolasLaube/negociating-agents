@@ -7,3 +7,6 @@
 - **p5**: Rightist citizen
 - **p6**: Communist citizen
 - **p7**: Laborist citizen
+- **p8**: Technocratic citizen
+- **p9**: Mondialist citizen
+- **p10**: Royalist citizen

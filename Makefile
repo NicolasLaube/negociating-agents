@@ -16,4 +16,4 @@ cars:
 	python -m communication --mode=cars --num_agents=2
 
 presidential:
-	python -m communication --mode=presidential --num_agents=5
+	python -m communication --mode=presidential --num_agents=10
