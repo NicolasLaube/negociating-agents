@@ -1,0 +1,4 @@
+item_name,environment_impact,production_cost,consumption,durability,noise
+ICED,1,3,2,3,1
+E,4,3,2,2,4
+HYBRID,3,3,2,3,3
