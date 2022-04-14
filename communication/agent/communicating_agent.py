@@ -41,9 +41,10 @@ class CommunicatingAgent(Agent):
 
     def send_message(self, message):
         """Send message through the MessageService object."""
-        performative = message.performative
 
-        print(f"Agent{self.unique_id} - {performative}({message})")
+        print(message)
+        # if performative == MessagePerformative.NOT_AGREE:
+        #     print("\n")
 
         self.__messages_service.send_message(message)
 

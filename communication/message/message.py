@@ -24,7 +24,7 @@ class Message:
         from_agent: str,
         to_agent: str,
         message_performative: MessagePerformative,
-        content: Union[Argument, Item],
+        content: Union[Argument, Item, str],
     ):
         """Create a new message."""
         self.__from_agent = from_agent
@@ -35,13 +35,12 @@ class Message:
     def __str__(self):
         """Return Message as a String."""
         return (
-            "From "
-            + str(self.__from_agent)
-            + " to "
+            str(self.__from_agent)
+            + " -> "
             + str(self.__to_agent)
-            + " ("
+            + " = "
             + str(self.__message_performative)
-            + ") "
+            + ": "
             + str(self.__content)
         )
 
@@ -61,6 +60,6 @@ class Message:
         return self.__message_performative
 
     @property
-    def content(self) -> Union[Argument, Item]:
+    def content(self) -> Union[Argument, Item, str]:
         """Return the content of the message."""
         return self.__content

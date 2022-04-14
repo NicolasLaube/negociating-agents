@@ -24,6 +24,25 @@ class Preferences:
         self.__criterion_name_list: List[CriterionName] = []
         self.__criterion_value_list: List[CriterionValue] = []
 
+    def __str__(self):
+        """Returns a string representation of the preferences."""
+        return (
+            "Preferences:\n"
+            + "Criterion names: "
+            + str(
+                [str(criterion_name) for criterion_name in self.__criterion_name_list]
+            )
+            + "\n"
+            + "Criterion values: "
+            + str(
+                [
+                    str(criterion_value)
+                    for criterion_value in self.__criterion_value_list
+                ]
+            )
+            + "\n"
+        )
+
     # @property
     # def criterion_name_list(self):
     #     return self.__criterion_name_list
@@ -32,33 +51,32 @@ class Preferences:
         """Returns the list of criterion name."""
         return self.__criterion_name_list
 
-    def get_criterion_value_list(self):
+    def get_criterion_value_list(self) -> List[CriterionValue]:
         """Returns the list of criterion value."""
         return self.__criterion_value_list
 
-    def set_criterion_name_list(self, criterion_name_list: List[CriterionName]):
+    def set_criterion_name_list(self, criterion_name_list: List[CriterionName]) -> None:
         """Sets the list of criterion name."""
         self.__criterion_name_list = criterion_name_list
 
-    def add_criterion_value(self, criterion_value: List[CriterionValue]):
+    def add_criterion_value(self, criterion_value: CriterionValue) -> None:
         """Adds a criterion value in the list."""
         self.__criterion_value_list.append(criterion_value)
 
-    def get_value(self, item, criterion_name: List[CriterionName]):
+    def get_value(self, item: Item, criterion_name: CriterionName) -> Value:
         """Gets the value for a given item and a given criterion name."""
-        for value in self.__criterion_value_list:
+        for criterion_value in self.__criterion_value_list:
             if (
-                value.get_item().name == item.name
-                and value.get_criterion_name() == criterion_name
+                criterion_value.item.name == item.name
+                and criterion_value.get_criterion_name() == criterion_name
             ):
-                return value.get_value()
-        return None
+                return criterion_value.value
+        raise ValueError("The criterion_name is not in the list of criterion values.")
 
     def is_preferred_criterion(
         self, criterion_name_1: CriterionName, criterion_name_2: CriterionName
-    ):
+    ) -> bool:
         """Returns if a criterion 1 is preferred to the criterion 2."""
-        # TODO verify this function
         for criterion_name in self.__criterion_name_list:
             if criterion_name == criterion_name_1:
                 return True
@@ -66,9 +84,9 @@ class Preferences:
                 return False
         return False
 
-    def is_preferred_item(self, item_1: Item, item_2: Item):
+    def is_preferred_item(self, item_1: Item, item_2: Item) -> bool:
         """Returns if the item 1 is preferred to the item 2."""
-        return item_1.get_score(self) > item_2.get_score(self)
+        return bool(item_1.get_score(self) > item_2.get_score(self))
 
     def most_preferred(self, item_list: List[Item]) -> Item:
         """Returns the most preferred item from a list."""
@@ -81,18 +99,24 @@ class Preferences:
             return random.choice([sorted_item_list[0], sorted_item_list[1]])
         return sorted_item_list[0]
 
-    def is_item_among_top_10_percent(self, item: Item, item_list: List[Item]) -> bool:
+    def is_item_among_top_percent(
+        self, item: Item, item_list: List[Item], percentage: int = 20
+    ) -> bool:
         """
         Return whether a given item is among the top 10 percent of the preferred items.
 
         :return: a boolean, True means that the item is among the favourite ones
         """
+        proportion = percentage / 100
         sorted_item_list = sorted(
             item_list,
             key=lambda item: item.get_score(self),  # type: ignore
             reverse=True,
         )
-        return item in sorted_item_list[: max(1, int(len(sorted_item_list) * 0.1))]
+
+        return (
+            item in sorted_item_list[: max(1, int(len(sorted_item_list) * proportion))]
+        )
 
     def set_criterion_pair(
         self, less_preferred: CriterionName, more_preferred: CriterionName
@@ -118,10 +142,10 @@ class Preferences:
         """To set a criterion value."""
         for criterion_value in self.__criterion_value_list:
             if (
-                criterion_value.get_item().name == item.name
+                criterion_value.item.name == item.name
                 and criterion_value.get_criterion_name() == criterion_name
             ):
-                criterion_value.set_value(item_value)
+                criterion_value.value = item_value
 
 
 if __name__ == "__main__":

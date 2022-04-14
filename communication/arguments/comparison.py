@@ -35,7 +35,7 @@ class Comparison:
         """Comparison equality"""
         if not isinstance(__o, Comparison):
             return False
-        return (
+        return bool(
             self.__best_criterion_name == __o.best_criterion_name
             and self.__worst_criterion_name == __o.worst_criterion_name
         )

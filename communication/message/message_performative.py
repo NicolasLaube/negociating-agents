@@ -14,6 +14,7 @@ class MessagePerformative(Enum):
     ARGUE = 105
     QUERY_REF = 106
     INFORM_REF = 107
+    NOT_AGREE = 108
 
     def __str__(self):
         """Returns the name of the enum item."""

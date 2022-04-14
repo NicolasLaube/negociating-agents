@@ -1,27 +1,58 @@
 """Main script for the communication."""
-from communication import Item
+from argparse import ArgumentParser
+from itertools import combinations
+
+from communication import config
 from communication.argumentation.argument_model import ArgumentModel
 from communication.preferences.criterion_name import CriterionName
 
-print("Testing two agents communication")
+if __name__ == "__main__":
+    print("Testing two agents communication")
 
+    argparser = ArgumentParser()
+    argparser.add_argument(
+        "--mode",
+        type=str,
+        default="presidential",
+        help="Argumentation mode (presidential or cars)",
+    )
+    argparser.add_argument(
+        "--num_agents",
+        type=int,
+        default=3,
+        help="Number of agents in the argumentation",
+    )
 
-e_car = Item("E", "The nice electric car")
-diesel_car = Item("ICED", "The greate diesel car")
+    argparser.add_argument(
+        "--max_num_steps",
+        type=int,
+        default=100,
+        help="Maximum number of steps in the argumentation",
+    )
 
-ITEMS = [e_car, diesel_car]
-CRITERIA = [
-    CriterionName.CONSUMPTION,
-    CriterionName.DURABILITY,
-    CriterionName.ENVIRONMENT_IMPACT,
-    CriterionName.NOISE,
-    CriterionName.PRODUCTION_COST,
-]
+    NUM_AGENTS = argparser.parse_args().num_agents
 
-argument_model = ArgumentModel(2, items=ITEMS, criteria=CRITERIA)
+    if argparser.parse_args().mode == "presidential":
 
-NUM_STEPS = 20
+        argument_model = ArgumentModel(
+            2,
+            items=config.PRESIDENTIAL_ITEMS,
+            criteria=CriterionName.list_presidential(),
+            preferences_folder=config.PRESIDENTIAL_PREFERENCES_FOLDER,
+        )
 
+    elif argparser.parse_args().mode == "cars":
 
-for _ in range(NUM_STEPS):
-    argument_model.step()
+        argument_model = ArgumentModel(
+            2,
+            items=config.CAR_ITEMS,
+            criteria=CriterionName.list_cars(),
+            preferences_folder=config.CARS_PREFERENCES_FOLDER,
+        )
+
+    for agent_1, agent_2 in combinations(list(range(1, NUM_AGENTS + 1)), 2):
+        print(f"NEGOCIATION BETWEEN {agent_1} AND {agent_2}:")
+        argument_model.setup_discussion_between(agent_1, agent_2)
+
+        for _ in range(argparser.parse_args().max_num_steps):
+            argument_model.step()

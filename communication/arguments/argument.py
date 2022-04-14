@@ -25,12 +25,7 @@ class Argument:
         self.__couple_values_list: List[CoupleValue] = []
 
     @property
-    def decision(self):
-        """Decision"""
-        return self.__decision
-
-    @property
-    def item(self):
+    def item(self) -> Item:
         """Item"""
         return self.__item
 
@@ -49,11 +44,11 @@ class Argument:
         """To get the premises couple values"""
         return self.__couple_values_list
 
-    def add_premiss_comparison(self, comparison):
+    def add_premiss_comparison(self, comparison) -> None:
         """Adds a premiss comparison in the comparison list."""
         self.__comparison_list.append(comparison)
 
-    def add_premiss_couple_values(self, couple_value):
+    def add_premiss_couple_values(self, couple_value) -> None:
         """Add a premiss couple values in the couple values list."""
         self.__couple_values_list.append(couple_value)
 
