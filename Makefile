@@ -11,7 +11,7 @@ test:
 tests: test
 
 cars:
-	python -m communication --mode=cars
+	python -m communication --mode=cars --num_agents=2
 
 presidential:
-	python -m communication --mode=presidential
+	python -m communication --mode=presidential --num_agents=3
