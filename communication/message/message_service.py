@@ -1,6 +1,9 @@
 """Message service."""
 
 
+from typing import List, Any
+
+
 class MessageService:
     """MessageService class.
     Class implementing the message service used to dispatch messages between communicating agents.
@@ -33,6 +36,11 @@ class MessageService:
         """Set the instant delivery parameter."""
         self.__instant_delivery = instant_delivery
 
+    @property
+    def messages_to_proceed(self) -> List[Any]:
+        """Return the list of message to proceed."""
+        return self.__messages_to_proceed
+
     def send_message(self, message):
         """Dispatch message if instant delivery active,
         otherwise add the message to proceed list."""
@@ -47,6 +55,7 @@ class MessageService:
 
     def dispatch_messages(self):
         """Proceed each message received by the message service."""
+        print(self.__messages_to_proceed)
         if len(self.__messages_to_proceed) > 0:
             for message in self.__messages_to_proceed:
                 self.dispatch_message(message)

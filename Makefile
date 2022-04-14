@@ -5,11 +5,6 @@ lint:
 		python -m mypy communication tests
 		python -m flake8 communication tests
 
-test:
-		pytest
-
-tests: test
-
 cars:
 	python -m communication --mode=cars --num_agents=2
 

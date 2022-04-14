@@ -22,3 +22,5 @@ PRESIDENTIAL_ITEMS = [
 
 CARS_PREFERENCES_FOLDER = os.path.join("data", "preferences", "cars")
 PRESIDENTIAL_PREFERENCES_FOLDER = os.path.join("data", "preferences", "presidential")
+
+MAX_NUM_STEPS = 100
