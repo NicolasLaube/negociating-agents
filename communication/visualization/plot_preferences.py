@@ -1,5 +1,5 @@
 """Plot agent preferences"""
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -29,10 +29,12 @@ def plot_one_agent_preferences(agent: ArgumentAgent):
     plt.show()
 
 
-def plot_agents_preferences(agents: List[ArgumentAgent]):
+def plot_agents_preferences(agents: Dict[int, ArgumentAgent]):
     """Plot agent preferences"""
 
-    items_dict = {item: i for i, item in enumerate(agents[0].items)}
+    items = list(agents.values())[1].items
+
+    items_dict = {item: i for i, item in enumerate(items)}
     _, ax = plt.subplots(figsize=(7, 5))
 
     agents_preferences: Dict[str, Any] = {
@@ -41,7 +43,7 @@ def plot_agents_preferences(agents: List[ArgumentAgent]):
         "Scores": [],
     }
 
-    for agent in agents:
+    for agent in agents.values():
         scores = [
             (item.get_score(agent.preferences), item) for item in items_dict.keys()
         ]
@@ -54,7 +56,7 @@ def plot_agents_preferences(agents: List[ArgumentAgent]):
     df = pd.DataFrame(agents_preferences)
 
     sns.histplot(df, x="Item", hue="Agent", multiple="dodge")
-    ax.set_xticks(list(range(len(agents[0].items))))
-    ax.set_xticklabels([str(item) for item in agents[0].items])
+    ax.set_xticks(list(range(len(items))))
+    ax.set_xticklabels([str(item) for item in items])
 
     plt.show()

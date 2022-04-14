@@ -12,7 +12,6 @@ from communication.argumentation.states import NegotationState
 from communication.message.message_service import MessageService
 from communication.preferences.criterion_name import CriterionName
 from communication.preferences.item import Item
-from communication.visualization.plot_preferences import plot_agents_preferences
 
 
 class ArgumentModel(Model):  # pylint: disable=too-many-instance-attributes
@@ -55,8 +54,6 @@ class ArgumentModel(Model):  # pylint: disable=too-many-instance-attributes
 
             self.all_agents.append(agent)
             self.agents_history[agent_id] = agent
-
-        plot_agents_preferences(self.all_agents)
 
     def step(self) -> Tuple[Optional[Item], Optional[ArgumentAgent]]:
         """Step"""

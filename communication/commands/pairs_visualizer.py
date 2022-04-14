@@ -5,6 +5,7 @@ from typing import Any, Dict, List
 
 from communication import config
 from communication.argumentation.argument_model import ArgumentModel
+from communication.visualization.plot_preferences import plot_agents_preferences
 from communication.visualization.plot_result_graph import plot_pair_result_graph
 
 
@@ -53,5 +54,6 @@ def visualize_pairs_negociations(argument_model: ArgumentModel, num_agents: int)
                 break
 
     print_results(results)
+    plot_agents_preferences(argument_model.agents_history)
 
     plot_pair_result_graph(argument_model.agents_history, results)
