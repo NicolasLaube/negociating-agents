@@ -422,13 +422,22 @@ class ArgumentAgent(CommunicatingAgent):
         )
 
         if argument is None:
-            # no attack message was found, propose another item
-            self.current_item = self.__get_best_item_to_propose()
-
-            if self.current_item is not None:
-                self.__propose_new_item()
+            if (
+                self.current_item is not None
+                and not self.is_leading
+                and self.preferences.is_item_among_top_percent(
+                    self.current_item, self.items, int(self.percentage * 1.2)
+                )
+            ):
+                self.__send_accept_message(message.sender)
             else:
-                self.__send_not_agree(message.sender)
+                # no attack message was found, propose another item
+                self.current_item = self.__get_best_item_to_propose()
+
+                if self.current_item is not None:
+                    self.__propose_new_item()
+                else:
+                    self.__send_not_agree(message.sender)
 
         else:
             if self.current_item is None:

@@ -55,7 +55,8 @@ def plot_agents_preferences(agents: Dict[int, ArgumentAgent]):
 
     df = pd.DataFrame(agents_preferences)
 
-    sns.histplot(df, x="Item", hue="Agent", multiple="dodge")
+    sns.histplot(df, x="Item", hue="Agent", multiple="dodge", shrink=4)
+    ax.set_ylabel("Score")
     ax.set_xticks(list(range(len(items))))
     ax.set_xticklabels([str(item) for item in items])
 

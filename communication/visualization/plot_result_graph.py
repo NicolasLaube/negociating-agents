@@ -24,11 +24,11 @@ def plot_pair_result_graph(
     node_color_map = []
     for agent_id, agent in agents.items():
         graph.add_node(get_node_label(agent_id), fillcolor="white")
-        node_color_map.append(config.PRESIDENTIAL_COLORS[agent.items[0].name])
+        node_color_map.append(config.ITEM_COLORS[agent.items[0].name])
 
     # Add the winning pairs
     edge_labels = {}
-    edge_color_map = []
+    edge_color_map = {}
     for result in results:
         graph.add_edge(
             get_node_label(result["winning_agent"]),
@@ -40,13 +40,12 @@ def plot_pair_result_graph(
                 get_node_label(result["losing_agent"]),
             )
         ] = str(result["chosen_item"])
-        edge_color_map.append(
+        edge_color_map[
             (
                 get_node_label(result["winning_agent"]),
                 get_node_label(result["losing_agent"]),
-                config.PRESIDENTIAL_COLORS[result["chosen_item"].name],
             )
-        )
+        ] = config.ITEM_COLORS[result["chosen_item"].name]
 
     pos = graphviz_layout(graph, prog="circo")
     nx.draw(
@@ -57,7 +56,7 @@ def plot_pair_result_graph(
         font_color="white",
         arrowsize=20,
         node_color=node_color_map,
-        edge_color=[x[2] for x in sorted(edge_color_map, key=lambda x: (x[0], x[1]))],
+        edge_color=[edge_color_map[(u, v)] for u, v in graph.edges],
         node_size=800,
     )
     nx.draw_networkx_edge_labels(
