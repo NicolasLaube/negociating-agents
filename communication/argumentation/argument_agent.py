@@ -32,6 +32,7 @@ class ArgumentAgent(CommunicatingAgent):
         self.current_item: Optional[Item] = None
         self.convinced_agents: Dict[str, bool] = {}
         self.arguments_used: List[Argument] = []
+        self.is_leading: bool = False
         self.percentage = config.INITIAL_PERCENTAGE
 
     def __str__(self) -> str:
@@ -218,6 +219,7 @@ class ArgumentAgent(CommunicatingAgent):
 
     def __propose_new_item(self) -> None:
         """Propose new item"""
+        self.is_leading = True
         self.convinced_agents = {}
         for agent in self.model.schedule.agents:
             if agent.name != self.name:
@@ -293,6 +295,7 @@ class ArgumentAgent(CommunicatingAgent):
 
     def __propose_performative_callback(self, message: Message) -> None:
         """Propose performative callback: the other agent proposes an item."""
+        self.is_leading = False
         self.convinced_agents = {}
 
         if self.negotation_state != NegotationState.FINISHED:
@@ -419,13 +422,22 @@ class ArgumentAgent(CommunicatingAgent):
         )
 
         if argument is None:
-            # no attack message was found, propose another item
-            self.current_item = self.__get_best_item_to_propose()
-
-            if self.current_item is not None:
-                self.__propose_new_item()
+            if (
+                self.current_item is not None
+                and not self.is_leading
+                and self.preferences.is_item_among_top_percent(
+                    self.current_item, self.items, int(self.percentage * 1.2)
+                )
+            ):
+                self.__send_accept_message(message.sender)
             else:
-                self.__send_not_agree(message.sender)
+                # no attack message was found, propose another item
+                self.current_item = self.__get_best_item_to_propose()
+
+                if self.current_item is not None:
+                    self.__propose_new_item()
+                else:
+                    self.__send_not_agree(message.sender)
 
         else:
             if self.current_item is None:

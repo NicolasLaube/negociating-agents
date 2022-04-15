@@ -1,9 +1,9 @@
 """Main script for the communication."""
 from argparse import ArgumentParser
-from itertools import combinations
 
 from communication import config
 from communication.argumentation.argument_model import ArgumentModel
+from communication.commands.pairs_visualizer import visualize_pairs_negociations
 from communication.preferences.criterion_name import CriterionName
 
 if __name__ == "__main__":
@@ -21,13 +21,6 @@ if __name__ == "__main__":
         type=int,
         default=3,
         help="Number of agents in the argumentation",
-    )
-
-    argparser.add_argument(
-        "--max_num_steps",
-        type=int,
-        default=100,
-        help="Maximum number of steps in the argumentation",
     )
 
     NUM_AGENTS = argparser.parse_args().num_agents
@@ -50,9 +43,4 @@ if __name__ == "__main__":
             preferences_folder=config.CARS_PREFERENCES_FOLDER,
         )
 
-    for agent_1, agent_2 in combinations(list(range(1, NUM_AGENTS + 1)), 2):
-        print(f"NEGOCIATION BETWEEN {agent_1} AND {agent_2}:")
-        argument_model.setup_discussion_between(agent_1, agent_2)
-
-        for _ in range(argparser.parse_args().max_num_steps):
-            argument_model.step()
+    visualize_pairs_negociations(argument_model, NUM_AGENTS)
